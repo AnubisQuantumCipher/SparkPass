@@ -39,13 +39,38 @@ Our comprehensive security audit verified:
 
 ## Installation
 
-### Prerequisites
+### Binary Download (macOS Apple Silicon)
+
+**Latest Release**: [v1.0.0](https://github.com/AnubisQuantumCipher/SparkPass/releases/tag/v1.0.0)
+
+```bash
+# Download
+curl -LO https://github.com/AnubisQuantumCipher/SparkPass/releases/download/v1.0.0/sparkpass-1.0.0-macos-arm64-unsigned.zip
+
+# Extract
+unzip sparkpass-1.0.0-macos-arm64-unsigned.zip
+
+# Remove macOS quarantine (required for unsigned builds)
+xattr -d com.apple.quarantine sparkpass_main
+chmod +x sparkpass_main
+
+# Verify
+./sparkpass_main --version
+```
+
+**SHA256**: `040aba13224fff79ea7edc0948e93ec2bbaa4a3eec2c97a2b0633f0174c02eb1`
+
+**Note**: This is an unsigned build. macOS Gatekeeper requires manual approval. The binary is functionally identical to what a signed version would be.
+
+### Building from Source
+
+**Prerequisites**:
 - **GNAT Toolchain**: GNAT 13+ with Ada 2012 support
 - **Alire** (recommended): Ada package manager
 - **libsodium**: For Argon2id and AES-256-GCM-SIV
 - **liboqs**: For ML-KEM-1024 and ML-DSA-87
 
-### Building from Source
+**Build**:
 
 Recommended (includes Touch ID support on macOS):
 ```bash
