@@ -33,11 +33,11 @@ curl -LO https://github.com/AnubisQuantumCipher/SparkPass/releases/download/v1.0
 unzip sparkpass-1.0.0-macos-arm64-unsigned.zip
 
 # Remove macOS quarantine (required for unsigned builds)
-xattr -d com.apple.quarantine sparkpass_main
-chmod +x sparkpass_main
+xattr -d com.apple.quarantine bin/sparkpass_main
+chmod +x bin/sparkpass_main
 
 # Verify
-./sparkpass_main --version
+./bin/sparkpass_main --version
 ```
 
 ### Create Your First Vault
@@ -91,12 +91,12 @@ curl -LO https://github.com/AnubisQuantumCipher/SparkPass/releases/download/v1.0
 unzip sparkpass-1.0.0-macos-arm64-unsigned.zip
 
 # Remove quarantine flag
-xattr -d com.apple.quarantine sparkpass_main
-chmod +x sparkpass_main
+xattr -d com.apple.quarantine bin/sparkpass_main
+chmod +x bin/sparkpass_main
 
 # Move to PATH
 mkdir -p ~/bin
-mv sparkpass_main ~/bin/sparkpass
+mv bin/sparkpass_main ~/bin/sparkpass
 echo 'export PATH="$HOME/bin:$PATH"' >> ~/.zshrc
 source ~/.zshrc
 
@@ -108,7 +108,7 @@ sparkpass --version
 
 ```bash
 # After downloading and removing quarantine
-sudo mv sparkpass_main /usr/local/bin/sparkpass
+sudo mv bin/sparkpass_main /usr/local/bin/sparkpass
 
 # Verify
 sparkpass --version
@@ -471,12 +471,12 @@ To run SparkPass after download:
 
 **Method 1: Command line**
 ```bash
-xattr -d com.apple.quarantine sparkpass_main
-./sparkpass_main --version
+xattr -d com.apple.quarantine bin/sparkpass_main
+./bin/sparkpass_main --version
 ```
 
 **Method 2: Right-click**
-1. Right-click `sparkpass_main`
+1. Right-click `bin/sparkpass_main`
 2. Click "Open"
 3. Click "Open" in the security dialog
 

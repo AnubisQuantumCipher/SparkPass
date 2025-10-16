@@ -31,14 +31,14 @@ When downloading SparkPass, users will encounter macOS Gatekeeper warnings:
 ```bash
 curl -LO https://github.com/AnubisQuantumCipher/SparkPass/releases/download/v1.0.0/sparkpass-1.0.0-macos-arm64-unsigned.zip
 unzip sparkpass-1.0.0-macos-arm64-unsigned.zip
-xattr -d com.apple.quarantine sparkpass_main
-chmod +x sparkpass_main
-./sparkpass_main --version
+xattr -d com.apple.quarantine bin/sparkpass_main
+chmod +x bin/sparkpass_main
+./bin/sparkpass_main --version
 ```
 
 **Method 2: Right-click**
 1. Download and extract ZIP
-2. Right-click `sparkpass_main`
+2. Right-click `bin/sparkpass_main`
 3. Click "Open"
 4. Click "Open" in the security dialog
 

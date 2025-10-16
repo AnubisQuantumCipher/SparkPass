@@ -51,11 +51,11 @@ curl -LO https://github.com/AnubisQuantumCipher/SparkPass/releases/download/v1.0
 unzip sparkpass-1.0.0-macos-arm64-unsigned.zip
 
 # Remove macOS quarantine (required for unsigned builds)
-xattr -d com.apple.quarantine sparkpass_main
-chmod +x sparkpass_main
+xattr -d com.apple.quarantine bin/sparkpass_main
+chmod +x bin/sparkpass_main
 
 # Verify
-./sparkpass_main --version
+./bin/sparkpass_main --version
 ```
 
 **SHA256**: `040aba13224fff79ea7edc0948e93ec2bbaa4a3eec2c97a2b0633f0174c02eb1`
