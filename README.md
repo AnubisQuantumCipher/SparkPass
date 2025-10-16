@@ -348,11 +348,16 @@ See `LACONTEXT_TESTING.md` for testing instructions.
 
 ### SPARK Verification
 
-Run SPARK proofs:
+Core cryptographic and vault modules are SPARK-verified. The CLI wrapper (`sparkpass_main.adb`) uses system calls and is not fully SPARK-compatible.
+
+Run SPARK proofs on core modules:
 ```bash
+# Note: CLI will show expected errors due to system calls
 gnatprove -P sparkpass.gpr --mode=flow
 gnatprove -P sparkpass.gpr --mode=prove --level=2
 ```
+
+The core modules (`sparkpass-crypto`, `sparkpass-vault`, etc.) pass SPARK verification for memory safety.
 
 ### Testing
 
