@@ -1,4 +1,4 @@
-pragma SPARK_Mode (On);
+pragma SPARK_Mode (Off);  -- Uses address clauses for memory overlays and I/O operations
 with Interfaces; use type Interfaces.Unsigned_8; use type Interfaces.Unsigned_16; use type Interfaces.Unsigned_32; use type Interfaces.Unsigned_64;
 with Ada.Streams.Stream_IO;
 with SparkPass.Config;

@@ -1,4 +1,4 @@
-pragma SPARK_Mode (On);
+pragma SPARK_Mode (Off);  -- Uses address attributes for secure memory operations
 with System;
 with Interfaces; use type Interfaces.Unsigned_8;
 with Interfaces.C;

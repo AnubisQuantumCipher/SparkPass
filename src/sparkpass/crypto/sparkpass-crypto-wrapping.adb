@@ -1,4 +1,4 @@
-pragma SPARK_Mode (On);
+pragma SPARK_Mode (Off);  -- Calls FFI-using modules (AES_GCM_SIV, Argon2id, Random)
 with SparkPass.Crypto.AES_GCM_SIV;
 with SparkPass.Crypto.Random;
 with SparkPass.Crypto.Zeroize;

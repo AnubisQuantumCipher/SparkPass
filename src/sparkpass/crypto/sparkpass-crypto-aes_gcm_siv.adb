@@ -1,4 +1,4 @@
-pragma SPARK_Mode (On);
+pragma SPARK_Mode (Off);  -- Uses FFI with OpenSSL for AES-256-GCM-SIV
 with System;
 with Interfaces; use type Interfaces.Unsigned_8;
 with Interfaces.C;

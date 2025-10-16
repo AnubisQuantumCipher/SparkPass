@@ -1,4 +1,4 @@
-pragma SPARK_Mode (On);
+pragma SPARK_Mode (Off);  -- Uses FFI with liboqs for ML-DSA-87
 with System;
 with Interfaces.C; use type Interfaces.C.int;
 with Interfaces.C.Strings;

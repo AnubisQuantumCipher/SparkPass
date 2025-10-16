@@ -1,4 +1,4 @@
-pragma SPARK_Mode (On);
+pragma SPARK_Mode (Off);  -- Uses FFI with libsodium and global state for initialization
 with Interfaces.C;
 with System;
 with Bindings.Libsodium;

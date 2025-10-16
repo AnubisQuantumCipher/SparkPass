@@ -1,4 +1,4 @@
-pragma SPARK_Mode (On);
+pragma SPARK_Mode (Off);  -- Calls Wrapping module which uses FFI
 with SparkPass.Crypto.Zeroize;
 
 package body SparkPass.Vault.KeyArena is

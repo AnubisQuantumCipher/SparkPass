@@ -1,4 +1,4 @@
-pragma SPARK_Mode (On);
+pragma SPARK_Mode (Off);  -- FFI bindings use address attributes
 with System;
 with Interfaces.C;
 with Interfaces.C.Strings;

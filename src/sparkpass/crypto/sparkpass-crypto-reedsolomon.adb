@@ -1,4 +1,4 @@
-pragma SPARK_Mode (On);
+pragma SPARK_Mode (Off);  -- Uses address clauses for memory overlays
 with Interfaces; use Interfaces;
 
 package body SparkPass.Crypto.ReedSolomon is

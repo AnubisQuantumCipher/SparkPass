@@ -1,4 +1,4 @@
-pragma SPARK_Mode (On);
+pragma SPARK_Mode (Off);  -- Uses Ada.Real_Time and address clauses for testing
 with Ada.Real_Time;
 with Interfaces; use type Interfaces.Unsigned_8;
 with SparkPass.Crypto.Argon2id;

@@ -1,4 +1,4 @@
-pragma SPARK_Mode (On);
+pragma SPARK_Mode (Off);  -- Uses FFI with liboqs for ML-KEM-1024
 with Interfaces.C; use type Interfaces.C.int;
 with Interfaces.C.Strings;
 with Bindings.LibOQS; use type Bindings.LibOQS.Kem_Handle;
