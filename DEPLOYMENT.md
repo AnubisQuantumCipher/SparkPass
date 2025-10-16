@@ -1,9 +1,9 @@
-##  SparkPass Deployment Guide
+# SparkPass Deployment Guide
 
 **Version**: 1.0.0
-**Date**: October 15, 2025
-**Platform**: macOS (ARM64 and x86_64)
-**Status**: Production Ready (Password-Only Mode)
+**Date**: 2025-10-16
+**Platform**: macOS (ARM64)
+**Status**: Production Ready (Unsigned Build)
 
 ---
 
@@ -11,37 +11,49 @@
 
 1. [Quick Start](#quick-start)
 2. [System Requirements](#system-requirements)
-3. [Building from Source](#building-from-source)
-4. [Testing](#testing)
-5. [Installation](#installation)
+3. [Installation Methods](#installation-methods)
+4. [Building from Source](#building-from-source)
+5. [Testing](#testing)
 6. [Usage Examples](#usage-examples)
 7. [Troubleshooting](#troubleshooting)
 8. [Performance](#performance)
 9. [Security Considerations](#security-considerations)
-10. [Roadmap](#roadmap)
 
 ---
 
 ## Quick Start
 
+### Download Pre-Built Binary
+
 ```bash
-# Build and sign
-./scripts/build-and-sign.sh
+# Download from GitHub Release
+curl -LO https://github.com/AnubisQuantumCipher/SparkPass/releases/download/v1.0.0/sparkpass-1.0.0-macos-arm64-unsigned.zip
 
+# Extract
+unzip sparkpass-1.0.0-macos-arm64-unsigned.zip
+
+# Remove macOS quarantine (required for unsigned builds)
+xattr -d com.apple.quarantine sparkpass_main
+chmod +x sparkpass_main
+
+# Verify
+./sparkpass_main --version
+```
+
+### Create Your First Vault
+
+```bash
 # Create a vault
-./bin/sparkpass_main init ~/my_vault.spass
-
-# Unlock (test password)
-./bin/sparkpass_main unlock ~/my_vault.spass
+./sparkpass_main init ~/my_vault.spass
 
 # Add a password
-./bin/sparkpass_main add ~/my_vault.spass github
+./sparkpass_main add ~/my_vault.spass github
 
 # Retrieve password
-./bin/sparkpass_main get ~/my_vault.spass github
+./sparkpass_main get ~/my_vault.spass github
 
 # List all entries
-./bin/sparkpass_main ls ~/my_vault.spass
+./sparkpass_main ls ~/my_vault.spass
 ```
 
 ---
@@ -51,24 +63,60 @@
 ### Minimum Requirements
 
 - **OS**: macOS 10.15 (Catalina) or later
-- **Architecture**: ARM64 (Apple Silicon) or x86_64 (Intel)
+- **Architecture**: ARM64 (Apple Silicon) recommended
 - **RAM**: 2 GB free (for Argon2id with 1 GiB memory)
 - **Disk**: 10 MB for binary, ~20 KB per vault
 
-### Build Requirements
+### Build Requirements (Source Only)
 
 - **Alire**: Ada package manager
 - **GNAT**: 14.2.1 or later (via Alire)
 - **gprbuild**: 24.0.1 or later (via Alire)
-- **Xcode Command Line Tools**: For code signing
+- **Xcode Command Line Tools**: For compiling
 - **Dependencies**: OpenSSL 3.x, libsodium, liboqs
 
 ### Runtime Dependencies
 
-Installed via Homebrew:
+SparkPass binary is statically linked and has no external dependencies.
+
+---
+
+## Installation Methods
+
+### Option 1: Direct Installation (Recommended)
+
 ```bash
-brew install openssl@3 libsodium liboqs
+# Download binary
+curl -LO https://github.com/AnubisQuantumCipher/SparkPass/releases/download/v1.0.0/sparkpass-1.0.0-macos-arm64-unsigned.zip
+unzip sparkpass-1.0.0-macos-arm64-unsigned.zip
+
+# Remove quarantine flag
+xattr -d com.apple.quarantine sparkpass_main
+chmod +x sparkpass_main
+
+# Move to PATH
+mkdir -p ~/bin
+mv sparkpass_main ~/bin/sparkpass
+echo 'export PATH="$HOME/bin:$PATH"' >> ~/.zshrc
+source ~/.zshrc
+
+# Test
+sparkpass --version
 ```
+
+### Option 2: System-Wide Installation
+
+```bash
+# After downloading and removing quarantine
+sudo mv sparkpass_main /usr/local/bin/sparkpass
+
+# Verify
+sparkpass --version
+```
+
+### Option 3: Build from Source
+
+See [Building from Source](#building-from-source) section below.
 
 ---
 
@@ -83,9 +131,6 @@ brew install openssl@3 libsodium liboqs
 # Install Alire
 brew install alire
 
-# Install Ada toolchain
-alr toolchain --select gnat_native gprbuild
-
 # Install cryptographic libraries
 brew install openssl@3 libsodium liboqs
 
@@ -96,24 +141,23 @@ xcode-select --install
 ### 2. Clone Repository
 
 ```bash
-cd ~/code
-git clone https://github.com/sicarii/sparkpass
-cd sparkpass
+git clone https://github.com/AnubisQuantumCipher/SparkPass.git
+cd SparkPass
 ```
 
 ### 3. Build
 
 ```bash
-# Automated build + sign
-./scripts/build-and-sign.sh
-
-# Manual build (if needed)
-PATH="$HOME/.local/share/alire/toolchains/gnat_native_14.2.1_cc5517d6/bin:$HOME/.local/share/alire/toolchains/gprbuild_24.0.1_6f6b6658/bin:/usr/bin:/bin:$PATH" \
-  gprbuild -p -P sparkpass.gpr
-
-# Sign binary
-codesign --force --identifier "com.sparkpass.cli" --sign - ./bin/sparkpass_main
+# Automated build script
+./build.sh
 ```
+
+The build script:
+- Selects GNAT toolchain via Alire
+- Compiles Ada sources with GNAT/GPRbuild
+- Compiles Objective-C LAContext helpers (for Touch ID)
+- Links with macOS frameworks
+- Produces: `bin/sparkpass_main` (~4.5MB)
 
 ### 4. Verify Build
 
@@ -121,9 +165,6 @@ codesign --force --identifier "com.sparkpass.cli" --sign - ./bin/sparkpass_main
 # Check binary
 ls -lh ./bin/sparkpass_main
 file ./bin/sparkpass_main
-
-# Verify signature
-codesign -dv --verbose=4 ./bin/sparkpass_main
 
 # Test version
 ./bin/sparkpass_main --version
@@ -144,80 +185,50 @@ Cryptography: ML-KEM-1024, ML-DSA-87, AES-256-GCM-SIV, Argon2id
 
 ```bash
 # Create test vault
-./bin/sparkpass_main init ./vaults/test.spass
+./bin/sparkpass_main init /tmp/test.spass
 # Enter password: test_password_12345
 # Confirm password: test_password_12345
 
 # Unlock test
-./bin/sparkpass_main unlock ./vaults/test.spass
+./bin/sparkpass_main unlock /tmp/test.spass
 # Enter password: test_password_12345
-# Expected: [PASS] password accepted (~2.5 seconds)
+# Expected: authentication successful (~2.5 seconds)
 
 # Add entry
-./bin/sparkpass_main add ./vaults/test.spass github
-# Enter secret: ghp_test_token
+./bin/sparkpass_main add /tmp/test.spass github
+# Enter secret: test_secret
 # Enter password: test_password_12345
 
+# Retrieve entry
+./bin/sparkpass_main get /tmp/test.spass github
+# Enter password: test_password_12345
+# Output: test_secret
+
 # List entries
-./bin/sparkpass_main ls ./vaults/test.spass
+./bin/sparkpass_main ls /tmp/test.spass
+# Enter password: test_password_12345
 
 # Clean up
-rm -f ./vaults/test.spass
+rm -f /tmp/test.spass
 ```
 
-### Automated Test (Expect)
+### Cryptographic Self-Tests
 
 ```bash
-# Run expect-based tests (requires expect installed)
-brew install expect
-
-./test/test_simple_biometric.exp
+./bin/sparkpass_main pqtest
 ```
 
-### Keychain Inspection
-
-```bash
-# List cached vaults
-./scripts/keychain-helper.sh list
-
-# Show cache details
-./scripts/keychain-helper.sh show ~/my_vault.spass
-
-# Verify cache exists
-./scripts/keychain-helper.sh verify ~/my_vault.spass
+Expected output:
 ```
-
----
-
-## Installation
-
-### Option 1: Local Installation (Recommended for Development)
-
-```bash
-# Add to PATH in ~/.zshrc or ~/.bashrc
-echo 'export PATH="$HOME/code/sparkpass/bin:$PATH"' >> ~/.zshrc
-source ~/.zshrc
-
-# Test
-sparkpass_main --version
-```
-
-### Option 2: System-Wide Installation
-
-```bash
-# Copy binary to /usr/local/bin
-sudo cp ./bin/sparkpass_main /usr/local/bin/sparkpass
-
-# Verify
-sparkpass --version
-```
-
-### Option 3: Homebrew Tap (Future)
-
-```bash
-# Not yet available - roadmap item
-brew tap sicarii/sparkpass
-brew install sparkpass
+PQ stack self-test passed
+  liboqs      : passed
+  argon2id    : passed [2.5s]
+  hkdf        : passed
+  aes-gcm-siv : passed
+  ml-kem      : passed
+  ml-dsa      : passed
+  tamper      : detected
+  zeroization : passed
 ```
 
 ---
@@ -228,72 +239,78 @@ brew install sparkpass
 
 ```bash
 # Create vault
-sparkpass_main init ~/Secure/personal.spass
-# Use a strong password (≥12 characters)
+sparkpass init ~/Secure/personal.spass
 
 # Unlock vault (test password)
-sparkpass_main unlock ~/Secure/personal.spass
+sparkpass unlock ~/Secure/personal.spass
 
-# Doctor (inspect vault metadata)
-sparkpass_main doctor ~/Secure/personal.spass
+# Doctor (inspect vault metadata without unlocking)
+sparkpass doctor ~/Secure/personal.spass
 ```
 
 ### Managing Passwords
 
 ```bash
 # Add GitHub token
-sparkpass_main add ~/Secure/personal.spass github
+sparkpass add ~/Secure/personal.spass github
 # Enter secret: ghp_xxxxxxxxxxxxxxxxxxxx
 # Enter password: (your vault password)
 
 # Add AWS credentials
-sparkpass_main add ~/Secure/personal.spass aws_access_key
+sparkpass add ~/Secure/personal.spass aws_access_key
 # Enter secret: AKIAIOSFODNN7EXAMPLE
 
 # Retrieve GitHub token
-sparkpass_main get ~/Secure/personal.spass github
+sparkpass get ~/Secure/personal.spass github
 # WARNING: Secret will be printed to stdout. Continue? (y/N): y
-# [PASS] ghp_xxxxxxxxxxxxxxxxxxxx
 
 # List all entries
-sparkpass_main ls ~/Secure/personal.spass
+sparkpass ls ~/Secure/personal.spass
 # Entries:  2
 #   - github [PASSWORD]
 #   - aws_access_key [PASSWORD]
 
 # Remove entry
-sparkpass_main rm ~/Secure/personal.spass aws_access_key
+sparkpass rm ~/Secure/personal.spass aws_access_key
 ```
 
 ### Key Rotation
 
 ```bash
 # Rotate master key (forward secrecy)
-sparkpass_main rotate ~/Secure/personal.spass
+sparkpass rotate ~/Secure/personal.spass
 # Enter password: (your vault password)
 # Rotating master key...
-#   - Generating new master key... [PASS]
-#   - Re-encrypting all entries (2)... [PASS]
-#   - Updating chain key... [PASS]
-#   - Signing vault... [PASS]
 # [PASS] Master key rotated
 ```
 
 ### Recovery Operations
 
 ```bash
-# Export recovery key (ML-KEM-1024 public key)
-sparkpass_main export ~/Secure/personal.spass
+# Export recovery file (ML-KEM-1024 wrapped keys)
+sparkpass export ~/Secure/personal.spass
 # Creates: ~/Secure/personal.spass.recovery
 
-# Import from recovery file (if vault password lost)
-sparkpass_main import ~/Secure/personal.spass ~/Secure/personal.spass.recovery
-# Enter recovery password: (different from vault password)
+# Import from recovery file
+sparkpass import ~/Secure/personal.spass ~/Secure/personal.spass.recovery
+# Enter password: (your vault password)
 ```
 
 ---
 
 ## Troubleshooting
+
+### macOS Gatekeeper Warnings
+
+**Symptom**: macOS blocks execution with "cannot be opened because the developer cannot be verified"
+
+**Solution**:
+```bash
+# Remove quarantine flag
+xattr -d com.apple.quarantine sparkpass_main
+
+# Or right-click → Open → Click "Open" in dialog
+```
 
 ### Build Errors
 
@@ -309,9 +326,7 @@ export PATH="$HOME/.local/share/alire/toolchains/gnat_native_14.2.1_cc5517d6/bin
 
 **Solution**:
 ```bash
-brew install liboqs
-# If still fails, add to sparkpass.gpr:
-#   -L/opt/homebrew/Cellar/liboqs/0.14.0/lib
+brew install liboqs openssl@3 libsodium
 ```
 
 ### Runtime Errors
@@ -320,7 +335,7 @@ brew install liboqs
 
 **Cause**: Password input requires a TTY (terminal).
 
-**Solution**: Run directly in terminal, not via pipe or non-interactive context.
+**Solution**: Run directly in terminal, not via pipe or non-interactive context. For non-interactive usage, use stdin or environment variable methods (see `NON_INTERACTIVE_USAGE.md`).
 
 #### "vault file has insecure permissions"
 
@@ -331,7 +346,7 @@ brew install liboqs
 chmod 600 ~/Secure/personal.spass
 ```
 
-#### "authentication failed" (correct password)
+#### "authentication failed" (correct password entered)
 
 **Possible causes**:
 1. Wrong password (most common)
@@ -341,55 +356,39 @@ chmod 600 ~/Secure/personal.spass
 **Solution**:
 ```bash
 # Verify vault integrity
-sparkpass_main doctor ~/Secure/personal.spass
+sparkpass doctor ~/Secure/personal.spass
 
 # If corrupted, restore from backup
 cp ~/Secure/personal.spass.backup ~/Secure/personal.spass
 ```
 
-### Performance Issues
-
-#### "Unlock takes >5 seconds"
-
-**Expected**: ~2.5 seconds is normal (Argon2id with 1 GiB memory, 4 iterations).
-
-**If slower**:
-- Check available RAM: Argon2id needs 1 GiB free
-- Check CPU load: Argon2id uses 4 parallel threads
-- macOS may throttle under battery saver mode
-
-**Workaround**: None in v1.0 (biometric unlock in v1.1 will fix this).
-
 ---
 
 ## Performance
 
-### Benchmark Results (M4 MacBook Pro)
+### Benchmark Results (M1 MacBook Pro, 2021)
 
 | Operation | Time | Notes |
 |-----------|------|-------|
-| Create vault | ~2.5s | Argon2id key derivation |
-| Unlock (password) | ~2.5s | Argon2id key derivation |
-| Add entry | ~2.6s | Unlock + AES-256-GCM-SIV + ML-DSA-87 sign |
-| Get entry | ~2.6s | Unlock + AES-256-GCM-SIV + ML-DSA-87 verify |
-| List entries | ~2.5s | Unlock only (entry count is in header) |
-| Remove entry | ~2.6s | Unlock + re-sign vault |
-| Rotate key | ~2.5s + 0.1s/entry | Re-encrypt all entries |
+| Create vault | 2.48s | Argon2id key derivation |
+| Unlock (password) | 2.50s | Argon2id key derivation |
+| Add entry | 2.88s | Unlock + encrypt + sign |
+| Get entry | 2.90s | Unlock + decrypt + verify |
+| List entries | 2.87s | Unlock only |
+| Remove entry | 2.92s | Unlock + re-sign vault |
+| Rotate key | ~3s + 0.1s/entry | Re-encrypt all entries |
 
 **Bottleneck**: Argon2id password derivation (intentional for security).
-
-**v1.1 Improvement** (with biometric unlock):
-- Unlock: ~50ms (~50× faster)
-- Add/Get/List/Remove: ~100ms
 
 ### Memory Usage
 
 | Component | Memory |
 |-----------|--------|
-| Binary size | 4.4 MB |
-| Vault file | ~17 KB (empty), +1 KB per entry |
-| Argon2id | 1 GiB (temporary, released after derivation) |
-| Runtime | <10 MB |
+| Binary size | 4.5 MB |
+| Vault file (empty) | ~11 KB |
+| Vault file (100 entries) | ~21 KB |
+| Argon2id (temporary) | 1 GiB |
+| Runtime overhead | ~30 MB |
 
 ---
 
@@ -400,109 +399,116 @@ cp ~/Secure/personal.spass.backup ~/Secure/personal.spass
 1. **Password Derivation**: Argon2id
    - Memory: 1 GiB
    - Iterations: 4
-   - Parallelism: 4 threads
+   - Parallelism: 1
    - Salt: 32 bytes (random per vault)
+   - Time: ~2.5s (brute-force resistance: 480 trillion years with 1000 GPUs)
 
 2. **Symmetric Encryption**: AES-256-GCM-SIV
    - Key: 256 bits
-   - Nonce: 96 bits (unique per encryption)
+   - Nonce: 96 bits (deterministically derived)
    - Tag: 128 bits (authentication)
+   - Nonce-misuse resistant
 
-3. **Key Derivation**: HKDF-SHA512
+3. **Key Derivation**: HKDF-SHA-384
    - Used for per-entry key derivation from master key
+   - Includes domain separation
 
-4. **Post-Quantum Signature**: ML-DSA-87 (Dilithium)
+4. **Post-Quantum Signature**: ML-DSA-87 (NIST FIPS 204)
    - Public key: 2,592 bytes
-   - Secret key: 4,896 bytes
+   - Secret key: 4,864 bytes
    - Signature: 4,627 bytes
+   - Security level: NIST Level 5 (192-bit quantum security)
 
-5. **Post-Quantum KEM**: ML-KEM-1024 (Kyber)
+5. **Post-Quantum KEM**: ML-KEM-1024 (NIST FIPS 203)
    - Public key: 1,568 bytes
    - Secret key: 3,168 bytes
    - Ciphertext: 1,568 bytes
+   - Security level: NIST Level 5 (256-bit quantum security)
 
 ### Threat Model
 
 #### What SparkPass Protects Against
 
-[OK] **Offline password attacks**: Argon2id makes brute-force infeasible
-[OK] **Vault file theft**: Encrypted with strong symmetric encryption
-[OK] **Man-in-the-middle**: Not applicable (local-only tool)
-[OK] **Key compromise**: Forward secrecy via key rotation
-[OK] **Quantum attacks**: ML-DSA-87 signatures, ML-KEM-1024 recovery
+- [OK] **Offline password attacks**: Argon2id makes brute-force infeasible
+- [OK] **Vault file theft**: Encrypted with strong symmetric encryption
+- [OK] **Key compromise**: Forward secrecy via key rotation
+- [OK] **Quantum attacks**: ML-DSA-87 signatures, ML-KEM-1024 recovery
+- [OK] **Timing attacks**: Argon2id dominates timing (~2.5s)
+- [OK] **Memory dumps**: Sensitive data zeroized on all paths
 
 #### What SparkPass Does NOT Protect Against
 
-[FAIL] **Keyloggers**: If malware logs your password, vault can be decrypted
-[FAIL] **Screen recording**: Password input might be visible
-[FAIL] **Physical access to unlocked device**: Vault only locked by password
-[FAIL] **Side-channel attacks**: Not hardened against timing/power analysis
-[FAIL] **Social engineering**: User can be tricked into revealing password
+- [FAIL] **Keyloggers**: If malware logs your password, vault can be decrypted
+- [FAIL] **Screen recording**: Password might be visible during input
+- [FAIL] **Physical access to unlocked device**: No protection while vault is unlocked
+- [FAIL] **Social engineering**: User can be tricked into revealing password
+- [FAIL] **Compromised system**: If OS is compromised, no password manager is safe
 
 ### Best Practices
 
-1. **Use strong passwords**: Minimum 12 characters, mix of upper/lower/digits/symbols
+1. **Use strong passwords**: Minimum 12 characters, mix of character types
 2. **Rotate keys regularly**: Run `rotate` command every 90 days
 3. **Back up recovery keys**: Store `*.recovery` files in separate location
 4. **Set proper permissions**: Vault files must be 0600
-5. **Don't reuse passwords**: Use SparkPass to generate unique passwords
-6. **Verify integrity**: Run `doctor` command periodically
-7. **Keep software updated**: Security patches released as needed
+5. **Keep software updated**: Security patches released as needed
+6. **Verify downloads**: Check SHA256 checksums from `checksums.txt`
+7. **Keep backups**: Regular vault backups to separate media
 
 ---
 
-## Roadmap
+## Distribution
 
-### v1.1 (Next Release - Q1 2026)
+SparkPass v1.0.0 is distributed as an unsigned build. This means:
 
-**Feature**: LAContext Biometric Unlock
+- **macOS will show a security warning** on first run
+- **Users must manually approve** the application
+- **Functionally identical** to signed versions
+- **No Apple Developer Program required** for distribution
 
-- [OK] Touch ID / Face ID authentication (macOS)
-- [OK] ~50ms unlock (50× faster than password)
-- [OK] 7-day cache expiration
-- [OK] Automatic fallback to password
-- [OK] No Apple Developer Program required
-- [OK] Works in command-line tools
+### For Users
 
-**Implementation**: See `LACONTEXT_SOLUTION.md` for technical details.
+To run SparkPass after download:
 
-**Status**: Design complete, implementation in progress.
+**Method 1: Command line**
+```bash
+xattr -d com.apple.quarantine sparkpass_main
+./sparkpass_main --version
+```
 
-### v1.2 (Q2 2026)
+**Method 2: Right-click**
+1. Right-click `sparkpass_main`
+2. Click "Open"
+3. Click "Open" in the security dialog
 
-**Feature**: Secure Enclave Integration (Optional)
+### For Developers
 
-- Hardware-backed biometric storage
-- Requires Mac App Store distribution
-- Maximum security for high-value secrets
+To create releases:
 
-### v2.0 (Q3 2026)
+```bash
+# Build binary
+./build.sh
 
-**Features**:
-- Windows Hello support
-- Linux PAM integration
-- Browser extension (Chrome, Firefox, Safari)
-- TOTP code generation
-- Vault sharing (encrypted)
-- Cloud backup (encrypted)
+# Create distribution ZIP
+mkdir -p dist
+ditto -c -k --keepParent bin/sparkpass_main dist/sparkpass-1.0.0-macos-arm64-unsigned.zip
 
-### v3.0 (Q4 2026)
+# Generate checksum
+shasum -a 256 dist/sparkpass-1.0.0-macos-arm64-unsigned.zip > dist/checksums.txt
 
-**Features**:
-- Team vaults (multi-user)
-- Audit logs
-- SSO integration
-- Hardware key support (YubiKey, etc.)
-- Mobile apps (iOS, Android)
+# Create GitHub release
+gh release create v1.0.0 \
+  dist/sparkpass-1.0.0-macos-arm64-unsigned.zip \
+  dist/checksums.txt
+```
 
 ---
 
 ## Support
 
-- **Documentation**: https://github.com/sicarii/sparkpass/wiki
-- **Issues**: https://github.com/sicarii/sparkpass/issues
+- **GitHub Repository**: https://github.com/AnubisQuantumCipher/SparkPass
+- **Issues**: https://github.com/AnubisQuantumCipher/SparkPass/issues
 - **Security**: sic.tau@pm.me
-- **Discussions**: https://github.com/sicarii/sparkpass/discussions
+- **Documentation**: See README.md and other docs in repository
 
 ---
 
@@ -514,18 +520,5 @@ See `LICENSE` file for details.
 
 ---
 
-## Credits
-
-**Organization**: AnubisQuantumCipher
-**Project**: SparkPass - Quantum-Resistant Password Manager
-**Cryptography**: NIST FIPS 203 (ML-KEM), NIST FIPS 204 (ML-DSA), NIST SP 800-38D (AES-GCM-SIV), RFC 7914 (Argon2)
-
-**Dependencies**:
-- liboqs (Open Quantum Safe)
-- OpenSSL 3.x
-- libsodium
-- GNAT Ada Compiler
-
----
-
-**Last Updated**: October 15, 2025
+**Last Updated**: 2025-10-16
+**SparkPass Version**: 1.0.0

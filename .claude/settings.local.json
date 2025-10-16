@@ -18,7 +18,10 @@
       "Bash(find:*)",
       "Bash(wc:*)",
       "Bash(sw_vers)",
-      "Bash(./test/test_timing_attacks:*)"
+      "Bash(./test/test_timing_attacks:*)",
+      "Read(//private/tmp/anubis-spark/**)",
+      "Read(//tmp/anubis-spark/**)",
+      "Read(//tmp/anubis-spark/docs/**)"
     ],
     "deny": [],
     "ask": []
