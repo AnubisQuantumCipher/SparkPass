@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Hardened Runtime Configuration for SparkPass CLI -->
+    <!-- Minimal entitlements for CLI tool with Touch ID support -->
+
+    <!-- Disable app sandbox (CLI tools don't use sandbox) -->
+    <key>com.apple.security.app-sandbox</key>
+    <false/>
+
+    <!-- Hardened Runtime: Disable JIT (not needed for CLI) -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <false/>
+
+    <!-- Hardened Runtime: Disable unsigned executable memory (not needed) -->
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <false/>
+
+    <!-- Hardened Runtime: Disable DYLD environment variables (more secure) -->
+    <key>com.apple.security.cs.allow-dyld-environment-variables</key>
+    <false/>
+
+    <!-- Hardened Runtime: Disable library validation (not needed) -->
+    <!-- IMPORTANT: Set to false for maximum security -->
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <false/>
+</dict>
+</plist>

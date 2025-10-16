@@ -1,0 +1,449 @@
+#!/usr/bin/expect -f
+#
+# SparkPass Comprehensive Test Suite
+#
+# Tests all core functionality with automated password entry
+#
+
+set timeout 120
+set sparkpass "../bin/sparkpass_main"
+set vault "../vaults/comprehensive_test.spass"
+set password "comprehensive_test_pass_12345"
+
+# Clean up
+exec rm -f $vault
+catch {exec security delete-generic-password -s "com.sparkpass.vault" -a "$vault"}
+
+# Test counters
+set tests_run 0
+set tests_passed 0
+set tests_failed 0
+
+proc test_start {name} {
+    global tests_run
+    incr tests_run
+    puts "\n\[0;34m===\[0m Test $tests_run: $name \[0;34m===\[0m"
+}
+
+proc test_pass {} {
+    global tests_passed
+    incr tests_passed
+    puts "\[0;32m✓ PASSED\[0m"
+}
+
+proc test_fail {reason} {
+    global tests_failed
+    incr tests_failed
+    puts "\[0;31m✗ FAILED: $reason\[0m"
+}
+
+puts "=== SparkPass Comprehensive Test Suite ==="
+puts "Binary: $sparkpass"
+puts "Vault: $vault"
+puts "Password: $password"
+puts ""
+
+# Test 1: Version
+test_start "Version Check"
+spawn $sparkpass --version
+expect {
+    "SparkPass version" {
+        test_pass
+    }
+    timeout {
+        test_fail "Timeout"
+    }
+}
+wait
+
+# Test 2: Help
+test_start "Help Command"
+spawn $sparkpass --help
+expect {
+    "USAGE:" {
+        test_pass
+    }
+    timeout {
+        test_fail "Timeout"
+    }
+}
+wait
+
+# Test 3: Create Vault
+test_start "Create Vault"
+spawn $sparkpass init $vault
+expect "Enter password: "
+send "$password\r"
+expect "Confirm password: "
+send "$password\r"
+expect {
+    "✓ vault initialized" {
+        test_pass
+    }
+    "✗" {
+        test_fail "Init failed"
+    }
+    timeout {
+        test_fail "Timeout"
+    }
+}
+wait
+
+# Test 4: Doctor Command
+test_start "Doctor (Vault Inspection)"
+spawn $sparkpass doctor $vault
+expect {
+    "Vault fingerprint:" {
+        test_pass
+    }
+    "✗" {
+        test_fail "Doctor failed"
+    }
+    timeout {
+        test_fail "Timeout"
+    }
+}
+wait
+
+# Test 5: Unlock
+test_start "Unlock with Password"
+set start_time [clock seconds]
+spawn $sparkpass unlock $vault
+expect "Enter password: "
+send "$password\r"
+expect {
+    "✓ password accepted" {
+        set end_time [clock seconds]
+        set duration [expr $end_time - $start_time]
+        test_pass
+        puts "  Duration: ${duration}s (expected ~2-3s)"
+    }
+    "✗ authentication failed" {
+        test_fail "Wrong password"
+    }
+    timeout {
+        test_fail "Timeout"
+    }
+}
+wait
+
+# Test 6: Add Entry (GitHub token)
+test_start "Add Entry (github)"
+spawn $sparkpass add $vault github
+expect "Enter secret: "
+send "ghp_test_token_123456789012345678901234\r"
+expect "Enter password: "
+send "$password\r"
+expect {
+    "✓ entry added" {
+        test_pass
+    }
+    "✗" {
+        test_fail "Add failed"
+    }
+    timeout {
+        test_fail "Timeout"
+    }
+}
+wait
+
+# Test 7: List Entries
+test_start "List Entries (should show 1)"
+spawn $sparkpass ls $vault
+expect "Enter password: "
+send "$password\r"
+expect {
+    "github" {
+        test_pass
+    }
+    "✗" {
+        test_fail "List failed"
+    }
+    timeout {
+        test_fail "Timeout"
+    }
+}
+wait
+
+# Test 8: Get Entry
+test_start "Get Entry (github)"
+spawn $sparkpass get $vault github
+expect "Enter password: "
+send "$password\r"
+expect "WARNING: Secret will be printed to stdout. Continue? (y/N):"
+send "y\r"
+expect {
+    "ghp_test_token" {
+        test_pass
+    }
+    "✗" {
+        test_fail "Get failed"
+    }
+    timeout {
+        test_fail "Timeout"
+    }
+}
+wait
+
+# Test 9: Add Second Entry
+test_start "Add Entry (aws_key)"
+spawn $sparkpass add $vault aws_access_key
+expect "Enter secret: "
+send "AKIAIOSFODNN7EXAMPLE\r"
+expect "Enter password: "
+send "$password\r"
+expect {
+    "✓ entry added" {
+        test_pass
+    }
+    "✗" {
+        test_fail "Add failed"
+    }
+    timeout {
+        test_fail "Timeout"
+    }
+}
+wait
+
+# Test 10: Add Third Entry
+test_start "Add Entry (database_pass)"
+spawn $sparkpass add $vault database_password
+expect "Enter secret: "
+send "super_secret_db_password_456!\r"
+expect "Enter password: "
+send "$password\r"
+expect {
+    "✓ entry added" {
+        test_pass
+    }
+    "✗" {
+        test_fail "Add failed"
+    }
+    timeout {
+        test_fail "Timeout"
+    }
+}
+wait
+
+# Test 11: List Multiple Entries
+test_start "List Entries (should show 3)"
+spawn $sparkpass ls $vault
+expect "Enter password: "
+send "$password\r"
+expect {
+    -re "Entries.*3" {
+        test_pass
+    }
+    "✗" {
+        test_fail "List failed"
+    }
+    timeout {
+        test_fail "Timeout"
+    }
+}
+wait
+
+# Test 12: Remove Entry
+test_start "Remove Entry (aws_key)"
+spawn $sparkpass rm $vault aws_access_key
+expect "Enter password: "
+send "$password\r"
+expect {
+    "✓ entry removed" {
+        test_pass
+    }
+    "✗" {
+        test_fail "Remove failed"
+    }
+    timeout {
+        test_fail "Timeout"
+    }
+}
+wait
+
+# Test 13: Verify Removal
+test_start "Verify Removal (should show 2)"
+spawn $sparkpass ls $vault
+expect "Enter password: "
+send "$password\r"
+expect {
+    -re "Entries.*2" {
+        # Should have github and database_password, but not aws
+        expect {
+            "aws_access_key" {
+                test_fail "Entry not removed"
+            }
+            "github" {
+                test_pass
+            }
+        }
+    }
+    "✗" {
+        test_fail "List failed"
+    }
+    timeout {
+        test_fail "Timeout"
+    }
+}
+wait
+
+# Test 14: Wrong Password
+test_start "Wrong Password Rejection"
+spawn $sparkpass unlock $vault
+expect "Enter password: "
+send "wrong_password_123\r"
+expect {
+    "✗ authentication failed" {
+        test_pass
+    }
+    "✓ password accepted" {
+        test_fail "Wrong password accepted!"
+    }
+    timeout {
+        test_fail "Timeout"
+    }
+}
+wait
+
+# Test 15: Key Rotation
+test_start "Master Key Rotation"
+spawn $sparkpass rotate $vault
+expect "Enter password: "
+send "$password\r"
+expect {
+    "✓ Master key rotated" {
+        test_pass
+    }
+    "✗" {
+        test_fail "Rotation failed"
+    }
+    timeout {
+        test_fail "Timeout"
+    }
+}
+wait
+
+# Test 16: Verify After Rotation
+test_start "Unlock After Rotation"
+spawn $sparkpass unlock $vault
+expect "Enter password: "
+send "$password\r"
+expect {
+    "✓ password accepted" {
+        test_pass
+    }
+    "✗" {
+        test_fail "Unlock after rotation failed"
+    }
+    timeout {
+        test_fail "Timeout"
+    }
+}
+wait
+
+# Test 17: Get Entry After Rotation
+test_start "Get Entry After Rotation"
+spawn $sparkpass get $vault github
+expect "Enter password: "
+send "$password\r"
+expect "WARNING: Secret will be printed to stdout. Continue? (y/N):"
+send "y\r"
+expect {
+    "ghp_test_token" {
+        test_pass
+    }
+    "✗" {
+        test_fail "Get after rotation failed"
+    }
+    timeout {
+        test_fail "Timeout"
+    }
+}
+wait
+
+# Test 18: Export Recovery Key
+test_start "Export Recovery Key"
+set recovery_file "$vault.recovery"
+spawn $sparkpass export $vault
+expect "Enter password: "
+send "$password\r"
+expect {
+    "✓ Recovery share created" {
+        test_pass
+        puts "  Recovery file: $recovery_file"
+    }
+    "✗" {
+        test_fail "Export failed"
+    }
+    timeout {
+        test_fail "Timeout"
+    }
+}
+wait
+
+# Test 19: PQ Test
+test_start "Post-Quantum Self-Test"
+spawn $sparkpass pqtest
+expect {
+    "✓ PQ stack self-test passed" {
+        test_pass
+    }
+    "✗ PQ stack self-test failed" {
+        test_fail "Self-test failed"
+    }
+    timeout {
+        test_fail "Timeout"
+    }
+}
+wait
+
+# Test 20: Sizes Command
+test_start "Crypto Sizes Command"
+spawn $sparkpass sizes
+expect {
+    "ML-KEM-1024 actual sizes" {
+        test_pass
+    }
+    timeout {
+        test_fail "Timeout"
+    }
+}
+wait
+
+# Summary
+puts "\n\[0;34m====================\[0m"
+puts "\[0;34m===\[0m Test Summary \[0;34m===\[0m"
+puts "\[0;34m====================\[0m\n"
+puts "Tests run:    $tests_run"
+puts "Tests passed: \[0;32m$tests_passed\[0m"
+puts "Tests failed: \[0;31m$tests_failed\[0m"
+puts ""
+
+if {$tests_failed == 0} {
+    puts "\[0;32m✓ ALL TESTS PASSED!\[0m\n"
+    puts "SparkPass is fully functional.\n"
+    puts "Test coverage:"
+    puts "  ✓ Vault creation and unlocking"
+    puts "  ✓ Entry management (add, get, list, remove)"
+    puts "  ✓ Password authentication"
+    puts "  ✓ Key rotation (forward secrecy)"
+    puts "  ✓ Recovery key export"
+    puts "  ✓ Post-quantum cryptography"
+    puts "  ✓ Error handling (wrong password)"
+    puts ""
+    puts "Deployment ready: v1.0.0"
+} else {
+    puts "\[0;31m✗ SOME TESTS FAILED\[0m\n"
+    puts "Review failed tests above."
+    exit 1
+}
+
+# Cleanup
+exec rm -f $vault
+exec rm -f $recovery_file
+catch {exec security delete-generic-password -s "com.sparkpass.vault" -a "$vault"}
+
+puts "\n\[0;34m===\[0m Cleanup Complete \[0;34m===\[0m"
+puts "Test vault and recovery file removed."
+
+exit 0

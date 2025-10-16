@@ -1,0 +1,46 @@
+project SparkPass is
+   for Languages use ("Ada", "C");
+   for Source_Dirs use (
+      "src/cli",
+      "src/crypto",
+      "src/vault",
+      "src/bindings",
+      "src/sparkpass",
+      "src/sparkpass/cli",
+      "src/sparkpass/crypto",
+      "src/sparkpass/vault",
+      "src/sparkpass/platform");
+   for Object_Dir use "obj";
+   for Exec_Dir   use "bin";
+   for Main use ("sparkpass_main.adb");
+
+   package Compiler is
+      for Driver ("C") use "/usr/bin/clang";
+      for Default_Switches ("Ada") use ("-O2", "-gnatn", "-mmacosx-version-min=26.0");
+      for Default_Switches ("C") use ("-O2", "-mmacosx-version-min=26.0");
+   end Compiler;
+
+   package Linker is
+      --  Library paths configured via pkg-config (with fallback to Homebrew ARM64 defaults)
+      --  Set environment variables LIBOQS_LDFLAGS, OPENSSL_LDFLAGS, LIBSODIUM_LDFLAGS to override
+      for Default_Switches ("Ada") use (
+         external("LIBOQS_LDFLAGS", "-L/opt/homebrew/Cellar/liboqs/0.14.0/lib"),
+         "-loqs",
+         external("OPENSSL_LDFLAGS", "-L/opt/homebrew/opt/openssl@3/lib"),
+         "-lssl",
+         "-lcrypto",
+         external("LIBSODIUM_LDFLAGS", "-L/opt/homebrew/lib"),
+         "-lsodium",
+         "-framework",
+         "CoreFoundation",
+         "-framework",
+         "Security",
+         "-framework",
+         "LocalAuthentication",
+         "-framework",
+         "Foundation",
+         "-Wl,-no_warn_duplicate_libraries",
+         "-Wl,-stack_size,0x4000000",
+         "-mmacosx-version-min=26.0");
+   end Linker;
+end SparkPass;

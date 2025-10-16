@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./bin/sparkpass_main:*)",
+      "Bash(./build.sh:*)",
+      "Bash(otool:*)",
+      "Bash(./test_mlkem_nist)",
+      "Bash(./test_mldsa_nist)",
+      "Bash(./test_mlkem_kat)",
+      "Bash(/Users/sicarii/SparkPass/test/test_mlkem_nist)",
+      "Bash(/Users/sicarii/SparkPass/test/test_mldsa_nist)",
+      "Bash(/Users/sicarii/SparkPass/test/test_mlkem_kat)",
+      "Bash(make:*)",
+      "Bash(/Users/sicarii/SparkPass/bin/sparkpass_main:*)",
+      "Bash(cat:*)",
+      "Bash(/Users/sicarii/SparkPass/test/test_vault_fuzzer)",
+      "Bash(/Users/sicarii/SparkPass/test/test_timing_attacks)",
+      "Bash(find:*)",
+      "Bash(wc:*)",
+      "Bash(sw_vers)",
+      "Bash(./test/test_timing_attacks:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

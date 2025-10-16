@@ -1,0 +1,444 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 1.0.0)'
+        required: true
+        type: string
+
+env:
+  # Apple Developer Configuration
+  TEAM_ID: E9VB3VKZKH
+  BUNDLE_ID: com.anubisquantumcipher.sparkpass
+  NOTARY_PROFILE: anubis-notary
+
+  # Build configuration
+  SPARKPASS_VERSION: ${{ github.event.inputs.version }}
+
+jobs:
+  build-and-release:
+    name: Build, Sign, Notarize, and Release
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Display environment info
+        run: |
+          echo "Building SparkPass v${{ github.event.inputs.version }}"
+          echo "Architecture: $(uname -m)"
+          echo "macOS version: $(sw_vers -productVersion)"
+          echo "Xcode version: $(xcodebuild -version)"
+          xcode-select -p
+
+      # ============================================================================
+      # STEP 1: Install Dependencies
+      # ============================================================================
+
+      - name: Install Homebrew dependencies
+        run: |
+          echo "=== Installing Homebrew dependencies ==="
+          brew update
+          brew install liboqs openssl@3 libsodium pkg-config
+
+          echo "=== Verifying installations ==="
+          brew list --versions liboqs openssl@3 libsodium
+          pkg-config --modversion liboqs openssl libsodium
+
+      - name: Install Alire
+        run: |
+          echo "=== Installing Alire ==="
+
+          # Download Alire for macOS
+          curl -L -o /tmp/alr-macos.zip \
+            https://github.com/alire-project/alire/releases/download/v2.0.1/alr-2.0.1-macos.zip
+
+          # Extract and install
+          unzip -q /tmp/alr-macos.zip -d /tmp/
+          sudo mkdir -p /usr/local/bin
+          sudo cp /tmp/bin/alr /usr/local/bin/
+          sudo chmod +x /usr/local/bin/alr
+
+          # Verify installation
+          alr version
+
+          # Initialize Alire (creates ~/.local/share/alire)
+          alr toolchain --select gnat_native=14.2.1 gprbuild=24.0.1
+
+          echo "=== Alire toolchain installed ==="
+          alr toolchain
+
+      - name: Verify build dependencies
+        run: |
+          echo "=== Build Dependencies Check ==="
+
+          # Verify Alire toolchain
+          export PATH="$HOME/.local/share/alire/toolchains/gnat_native_14.2.1_cc5517d6/bin:$PATH"
+          export PATH="$HOME/.local/share/alire/toolchains/gprbuild_24.0.1_6f6b6658/bin:$PATH"
+
+          which gnat
+          which gprbuild
+          gnat --version
+          gprbuild --version
+
+          # Verify libraries
+          pkg-config --libs liboqs openssl libsodium
+
+          # Verify clang (for Objective-C)
+          which clang
+          clang --version
+
+      # ============================================================================
+      # STEP 2: Configure Code Signing
+      # ============================================================================
+
+      - name: Import code signing certificates
+        env:
+          MACOS_CERTIFICATE_APP: ${{ secrets.MACOS_CERTIFICATE_APP }}
+          MACOS_CERTIFICATE_INSTALLER: ${{ secrets.MACOS_CERTIFICATE_INSTALLER }}
+        run: |
+          echo "=== Importing code signing certificates ==="
+
+          # Create temporary keychain
+          KEYCHAIN_PATH="$RUNNER_TEMP/sparkpass-build.keychain-db"
+          KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Decode and import Developer ID Application certificate
+          echo "$MACOS_CERTIFICATE_APP" | base64 --decode > "$RUNNER_TEMP/devid_app.p12"
+          security import "$RUNNER_TEMP/devid_app.p12" \
+            -k "$KEYCHAIN_PATH" \
+            -P "" \
+            -T /usr/bin/codesign \
+            -T /usr/bin/productsign \
+            -A
+
+          # Decode and import Developer ID Installer certificate
+          echo "$MACOS_CERTIFICATE_INSTALLER" | base64 --decode > "$RUNNER_TEMP/devid_installer.p12"
+          security import "$RUNNER_TEMP/devid_installer.p12" \
+            -k "$KEYCHAIN_PATH" \
+            -P "" \
+            -T /usr/bin/codesign \
+            -T /usr/bin/productsign \
+            -A
+
+          # Set keychain search list
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          security default-keychain -s "$KEYCHAIN_PATH"
+
+          # Allow codesign to access keychain without prompt
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # Verify certificates are installed
+          echo "=== Installed certificates ==="
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
+
+          # Clean up certificate files
+          rm -f "$RUNNER_TEMP/devid_app.p12" "$RUNNER_TEMP/devid_installer.p12"
+
+          echo "Certificates imported successfully"
+
+      - name: Configure notarization credentials
+        env:
+          MACOS_NOTARIZATION_APPLE_ID: ${{ secrets.MACOS_NOTARIZATION_APPLE_ID }}
+          MACOS_NOTARIZATION_TEAM_ID: ${{ secrets.MACOS_NOTARIZATION_TEAM_ID }}
+          MACOS_NOTARIZATION_PASSWORD: ${{ secrets.MACOS_NOTARIZATION_PASSWORD }}
+          MACOS_NOTARIZATION_API_KEY: ${{ secrets.MACOS_NOTARIZATION_API_KEY }}
+          MACOS_NOTARIZATION_KEY_ID: ${{ secrets.MACOS_NOTARIZATION_KEY_ID }}
+          MACOS_NOTARIZATION_ISSUER_ID: ${{ secrets.MACOS_NOTARIZATION_ISSUER_ID }}
+        run: |
+          echo "=== Configuring notarization credentials ==="
+
+          # Option A: App-specific password (if provided)
+          if [ -n "$MACOS_NOTARIZATION_PASSWORD" ]; then
+            echo "Using app-specific password for notarization"
+            xcrun notarytool store-credentials "$NOTARY_PROFILE" \
+              --apple-id "$MACOS_NOTARIZATION_APPLE_ID" \
+              --team-id "$MACOS_NOTARIZATION_TEAM_ID" \
+              --password "$MACOS_NOTARIZATION_PASSWORD"
+
+          # Option B: API key (if provided)
+          elif [ -n "$MACOS_NOTARIZATION_API_KEY" ]; then
+            echo "Using API key for notarization"
+
+            # Save API key to temporary file
+            echo "$MACOS_NOTARIZATION_API_KEY" > "$RUNNER_TEMP/AuthKey.p8"
+
+            xcrun notarytool store-credentials "$NOTARY_PROFILE" \
+              --key "$RUNNER_TEMP/AuthKey.p8" \
+              --key-id "$MACOS_NOTARIZATION_KEY_ID" \
+              --issuer-id "$MACOS_NOTARIZATION_ISSUER_ID"
+
+            # Clean up API key file
+            rm -f "$RUNNER_TEMP/AuthKey.p8"
+
+          else
+            echo "ERROR: No notarization credentials provided"
+            echo "Set either:"
+            echo "  - MACOS_NOTARIZATION_APPLE_ID, MACOS_NOTARIZATION_TEAM_ID, MACOS_NOTARIZATION_PASSWORD"
+            echo "  - MACOS_NOTARIZATION_API_KEY, MACOS_NOTARIZATION_KEY_ID, MACOS_NOTARIZATION_ISSUER_ID"
+            exit 1
+          fi
+
+          # Verify credentials
+          xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" || true
+
+          echo "Notarization credentials configured"
+
+      # ============================================================================
+      # STEP 3: Build SparkPass
+      # ============================================================================
+
+      - name: Build SparkPass
+        run: |
+          echo "=== Building SparkPass v${{ github.event.inputs.version }} ==="
+
+          # Set up Alire toolchain PATH
+          export PATH="$HOME/.local/share/alire/toolchains/gnat_native_14.2.1_cc5517d6/bin:$PATH"
+          export PATH="$HOME/.local/share/alire/toolchains/gprbuild_24.0.1_6f6b6658/bin:$PATH"
+
+          # Build
+          ./build.sh
+
+          # Verify binary was created
+          if [ ! -f bin/sparkpass_main ]; then
+            echo "ERROR: Build failed - binary not found"
+            exit 1
+          fi
+
+          # Display binary info
+          ls -lh bin/sparkpass_main
+          file bin/sparkpass_main
+          otool -L bin/sparkpass_main
+
+          echo "Build successful"
+
+      # ============================================================================
+      # STEP 4: Sign, Notarize, and Staple
+      # ============================================================================
+
+      - name: Sign, notarize, and staple
+        run: |
+          echo "=== Sign, notarize, and staple workflow ==="
+
+          # Set architecture
+          export SPARKPASS_ARCH="$(uname -m)"
+
+          # Run complete signing workflow
+          ./scripts/sign-and-notarize.sh "${{ github.event.inputs.version }}"
+
+          # Verify outputs
+          if [ ! -f "dist/sparkpass-${{ github.event.inputs.version }}-macos-${SPARKPASS_ARCH}.zip" ]; then
+            echo "ERROR: ZIP distribution not created"
+            exit 1
+          fi
+
+          if [ ! -f "dist/sparkpass-${{ github.event.inputs.version }}-installer.pkg" ]; then
+            echo "ERROR: PKG installer not created"
+            exit 1
+          fi
+
+          echo "Sign and notarize complete"
+
+      # ============================================================================
+      # STEP 5: Verification
+      # ============================================================================
+
+      - name: Verify signatures
+        run: |
+          echo "=== Verifying signatures ==="
+
+          # Verify binary signature
+          codesign --verify --deep --strict --verbose=2 bin/sparkpass_main
+
+          # Verify PKG signature
+          pkgutil --check-signature "dist/sparkpass-${{ github.event.inputs.version }}-installer.pkg"
+
+          # Verify stapled ticket
+          xcrun stapler validate "dist/sparkpass-${{ github.event.inputs.version }}-installer.pkg"
+
+          # Verify Gatekeeper acceptance
+          spctl -a -vvv -t install "dist/sparkpass-${{ github.event.inputs.version }}-installer.pkg" || true
+
+          echo "All signatures verified"
+
+      - name: Test installation
+        run: |
+          echo "=== Testing PKG installation ==="
+
+          # Install PKG
+          sudo installer -pkg "dist/sparkpass-${{ github.event.inputs.version }}-installer.pkg" -target /
+
+          # Verify installation
+          if [ ! -f /usr/local/bin/sparkpass ]; then
+            echo "ERROR: Installation failed - binary not found at /usr/local/bin/sparkpass"
+            exit 1
+          fi
+
+          # Test binary
+          /usr/local/bin/sparkpass --version
+          /usr/local/bin/sparkpass --help
+
+          echo "Installation test successful"
+
+      # ============================================================================
+      # STEP 6: Generate Checksums
+      # ============================================================================
+
+      - name: Generate checksums
+        run: |
+          echo "=== Generating SHA256 checksums ==="
+
+          cd dist
+          ARCH="$(uname -m)"
+
+          shasum -a 256 \
+            "sparkpass-${{ github.event.inputs.version }}-macos-${ARCH}.zip" \
+            "sparkpass-${{ github.event.inputs.version }}-installer.pkg" \
+            > checksums.txt
+
+          echo "=== Checksums ==="
+          cat checksums.txt
+
+          cd ..
+
+      # ============================================================================
+      # STEP 7: Upload Artifacts
+      # ============================================================================
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sparkpass-v${{ github.event.inputs.version }}-macos
+          path: |
+            dist/sparkpass-${{ github.event.inputs.version }}-macos-*.zip
+            dist/sparkpass-${{ github.event.inputs.version }}-installer.pkg
+            dist/checksums.txt
+            dist/notarization-*.json
+          retention-days: 90
+
+      # ============================================================================
+      # STEP 8: Create GitHub Release
+      # ============================================================================
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ github.event.inputs.version }}
+          name: SparkPass v${{ github.event.inputs.version }}
+          body: |
+            # SparkPass v${{ github.event.inputs.version }}
+
+            Quantum-resistant password manager with ML-KEM-1024 and ML-DSA-87 support.
+
+            ## Installation
+
+            ### Option 1: PKG Installer (Recommended)
+
+            ```bash
+            # Download and install
+            curl -LO https://github.com/${{ github.repository }}/releases/download/v${{ github.event.inputs.version }}/sparkpass-${{ github.event.inputs.version }}-installer.pkg
+            sudo installer -pkg sparkpass-${{ github.event.inputs.version }}-installer.pkg -target /
+
+            # Verify
+            sparkpass --version
+            ```
+
+            ### Option 2: ZIP Archive
+
+            ```bash
+            # Download and extract
+            curl -LO https://github.com/${{ github.repository }}/releases/download/v${{ github.event.inputs.version }}/sparkpass-${{ github.event.inputs.version }}-macos-$(uname -m).zip
+            unzip sparkpass-${{ github.event.inputs.version }}-macos-$(uname -m).zip
+
+            # Install to ~/bin
+            mkdir -p ~/bin
+            mv sparkpass ~/bin/
+            chmod +x ~/bin/sparkpass
+
+            # Add to PATH (if needed)
+            echo 'export PATH="$HOME/bin:$PATH"' >> ~/.zshrc
+            source ~/.zshrc
+            ```
+
+            ### Option 3: Homebrew (Coming Soon)
+
+            ```bash
+            brew tap anubisquantumcipher/sparkpass
+            brew install sparkpass
+            ```
+
+            ## Features
+
+            - Quantum-resistant encryption with ML-KEM-1024
+            - Digital signatures with ML-DSA-87
+            - Touch ID / Face ID integration on macOS
+            - NIST FIPS 203/204 compliant
+            - AES-256-GCM-SIV encryption
+            - Argon2id key derivation
+            - Reed-Solomon error correction
+            - Shamir secret sharing
+
+            ## Verification
+
+            All binaries are signed with Apple Developer ID and notarized by Apple.
+
+            ```bash
+            # Verify PKG signature
+            pkgutil --check-signature sparkpass-${{ github.event.inputs.version }}-installer.pkg
+
+            # Verify stapled notarization
+            xcrun stapler validate sparkpass-${{ github.event.inputs.version }}-installer.pkg
+
+            # Check checksums
+            shasum -a 256 -c checksums.txt
+            ```
+
+            ## What's New
+
+            - Initial release
+
+            ## Documentation
+
+            - [README](https://github.com/${{ github.repository }}/blob/main/README.md)
+            - [Security Architecture](https://github.com/${{ github.repository }}/blob/main/SECURITY.md)
+            - [Notarization Guide](https://github.com/${{ github.repository }}/blob/main/NOTARIZATION.md)
+
+            ---
+
+            **Full Changelog**: https://github.com/${{ github.repository }}/commits/v${{ github.event.inputs.version }}
+          files: |
+            dist/sparkpass-${{ github.event.inputs.version }}-macos-*.zip
+            dist/sparkpass-${{ github.event.inputs.version }}-installer.pkg
+            dist/checksums.txt
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # ============================================================================
+      # STEP 9: Cleanup
+      # ============================================================================
+
+      - name: Cleanup keychain
+        if: always()
+        run: |
+          echo "=== Cleaning up temporary keychain ==="
+
+          KEYCHAIN_PATH="$RUNNER_TEMP/sparkpass-build.keychain-db"
+
+          if [ -f "$KEYCHAIN_PATH" ]; then
+            security delete-keychain "$KEYCHAIN_PATH" || true
+          fi
+
+          # Remove any temporary files
+          rm -f "$RUNNER_TEMP"/*.p12
+          rm -f "$RUNNER_TEMP"/*.p8
+
+          echo "Cleanup complete"

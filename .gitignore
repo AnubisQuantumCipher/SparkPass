@@ -1,0 +1,43 @@
+# Build artifacts
+bin/
+obj/
+lib/
+*.o
+*.ali
+*.a
+b__*.ad[sb]
+b~*.ad[sb]
+
+# Distribution
+dist/
+
+# Alire
+alire/
+config/
+
+# Test artifacts
+test/*.o
+test/*.ali
+test/test_*
+!test/test_*.adb
+!test/test_*.ads
+!test/*.sh
+
+# Vault files (for safety)
+*.spass
+*.spass.recovery
+
+# macOS
+.DS_Store
+._*
+
+# Editor files
+*.swp
+*~
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
+*.bak
+*.log

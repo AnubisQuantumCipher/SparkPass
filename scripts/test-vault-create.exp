@@ -1,0 +1,50 @@
+#!/usr/bin/expect -f
+#
+# Test vault creation with automated password entry
+#
+
+set timeout 30
+set sparkpass "./bin/sparkpass_main"
+set vault "./vaults/test.spass"
+set password "test_password_12345"
+
+# Clean up any existing test vault
+exec rm -f $vault
+
+puts "=== Creating Test Vault ==="
+puts "Vault: $vault"
+puts "Password: $password"
+puts ""
+
+spawn $sparkpass init $vault
+expect "Enter password: "
+send "$password\r"
+expect "Confirm password: "
+send "$password\r"
+
+expect {
+    "✓ vault initialized" {
+        puts ""
+        puts "✓ Vault created successfully!"
+        set vault_path [exec readlink -f $vault 2>/dev/null || echo $vault]
+        puts "  Location: $vault_path"
+        puts "  Size: [exec du -h $vault | cut -f1]"
+        puts ""
+        puts "Next steps:"
+        puts "  1. Unlock with password: $sparkpass unlock $vault"
+        puts "  2. This will seed the biometric cache"
+        puts "  3. Second unlock will use Touch ID"
+    }
+    "✗" {
+        puts ""
+        puts "✗ Vault creation failed"
+        exit 1
+    }
+    timeout {
+        puts ""
+        puts "✗ Vault creation timed out"
+        exit 1
+    }
+}
+
+wait

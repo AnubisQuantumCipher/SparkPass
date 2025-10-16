@@ -1,0 +1,1011 @@
+pragma SPARK_Mode (On);
+with Ada.Command_Line; use Ada.Command_Line;
+with Ada.Text_IO;      use Ada.Text_IO;
+with Ada.Calendar;     use Ada.Calendar;
+with Ada.Unchecked_Deallocation;
+with Interfaces;       use type Interfaces.Unsigned_64; use type Interfaces.Unsigned_8;
+with Interfaces.C;
+with Interfaces.C.Strings;
+with SparkPass.Types;  use SparkPass.Types;
+with SparkPass.Config;
+with SparkPass.Crypto.LibOQS;
+with SparkPass.Crypto.Self_Test;
+with SparkPass.Crypto.Zeroize;
+with SparkPass.Vault;
+with SparkPass.Vault.Storage; use SparkPass.Vault.Storage;
+with SparkPass.CLI.Password_Input;
+with Bindings.LibOQS;
+
+procedure Sparkpass_Main is
+
+   --  Vault_Buffer: heap-allocated state buffer
+   --  Supports up to Max_Entries without stack overflow
+   type Vault_State_Access is access all SparkPass.Vault.Vault_State;
+   procedure Free is new Ada.Unchecked_Deallocation (SparkPass.Vault.Vault_State, Vault_State_Access);
+
+   Vault_Buffer : Vault_State_Access;
+
+   function To_Bytes (S : String) return Byte_Array is
+      subtype Range_Type is Positive range 1 .. (if S'Length = 0 then 1 else S'Length);
+      Result : Byte_Array (Range_Type);
+   begin
+      if S'Length = 0 then
+         Result (Result'First) := 0;
+      else
+         for Offset in 0 .. S'Length - 1 loop
+            Result (Result'First + Offset) :=
+              U8 (Character'Pos (S (S'First + Offset)) mod 256);
+         end loop;
+      end if;
+      return Result;
+   end To_Bytes;
+
+   function To_String (Bytes : Byte_Array; Length : Natural) return String is
+   begin
+      if Length = 0 then
+         return "";
+      end if;
+
+      declare
+         Result : String (1 .. Length);
+      begin
+         for Offset in 0 .. Length - 1 loop
+            Result (Offset + 1) :=
+              Character'Val (Integer (Bytes (Bytes'First + Offset)));
+         end loop;
+         return Result;
+      end;
+   end To_String;
+
+   function Timestamp return U64 is
+      use Ada.Calendar;
+      Now    : constant Time := Clock;
+      Epoch  : constant Time := Time_Of (Year => 1970, Month => 1, Day => 1,
+                                         Seconds => 0.0);
+      Time_Delta  : constant Duration := Now - Epoch;
+   begin
+      if Time_Delta <= 0.0 then
+         return 0;
+      end if;
+
+      declare
+         Elapsed_Seconds : constant Long_Long_Integer := Long_Long_Integer (Time_Delta);
+      begin
+         if Elapsed_Seconds <= 0 then
+            return 0;
+         end if;
+         return U64 (Interfaces.Unsigned_64 (Elapsed_Seconds));
+      end;
+   end Timestamp;
+
+   procedure Usage is
+   begin
+      Put_Line ("SparkPass blueprint CLI");
+      Put_Line ("usage:");
+      Put_Line ("  sparkpass init <vault>");
+      Put_Line ("  sparkpass doctor <vault>");
+      Put_Line ("  sparkpass unlock <vault>");
+      Put_Line ("  sparkpass add <vault> <label>  # Will prompt for secret");
+      Put_Line ("  sparkpass get <vault> <label>");
+      Put_Line ("  sparkpass ls <vault>");
+      Put_Line ("  sparkpass rm <vault> <label>");
+      Put_Line ("  sparkpass rotate <vault>");
+      Put_Line ("  sparkpass export <vault>");
+      Put_Line ("  sparkpass import <vault> <recovery-file>");
+      Put_Line ("  sparkpass pqtest");
+      Put_Line ("");
+      Put_Line ("Note: Password and secrets will be prompted securely (not via command-line)");
+   end Usage;
+
+begin
+   --  Allocate vault buffer on heap to support large Max_Entries
+   Vault_Buffer := new SparkPass.Vault.Vault_State;
+
+   if Argument_Count = 0 then
+      Usage;
+      SparkPass.Vault.Clear (Vault_Buffer.all);
+      Free (Vault_Buffer);
+      return;
+   end if;
+
+   declare
+      Cmd : constant String := Argument (1);
+   begin
+      if Cmd = "init" then
+         if Argument_Count < 2 then
+            Usage;
+            return;
+         end if;
+
+         declare
+            Path         : constant String := Argument (2);
+            Password_Buf : Byte_Array (1 .. SparkPass.Config.Password_Buffer_Size) := (others => 0);
+            Password_Len : Natural;
+            Read_Success : Boolean;
+            Password     : Byte_Array (1 .. SparkPass.Config.Password_Buffer_Size) := (others => 0);
+            Save_State   : SparkPass.Vault.Save_Status;
+         begin
+            SparkPass.CLI.Password_Input.Read_Password
+              ("Enter password: ", Password_Buf, Password_Len, Read_Success);
+
+            if not Read_Success then
+               Put_Line ("✗ failed to read password");
+               SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+               return;
+            end if;
+
+            if Password_Len = 0 then
+               Put_Line ("✗ password must not be empty");
+               SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+               return;
+            end if;
+
+            if Password_Len < SparkPass.Config.Min_Password_Length then
+               Put_Line ("✗ password must be at least" & Natural'Image (SparkPass.Config.Min_Password_Length) & " characters");
+               SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+               return;
+            end if;
+
+            --  Copy password to working buffer
+            for I in 0 .. Password_Len - 1 loop
+               Password (Password'First + I) := Password_Buf (Password_Buf'First + I);
+            end loop;
+
+            SparkPass.Vault.Clear (Vault_Buffer);
+            SparkPass.Vault.Create (Vault_Buffer, Password (1 .. Password_Len), Timestamp);
+            SparkPass.Vault.Save (Vault_Buffer, Path, Save_State);
+            case Save_State is
+               when SparkPass.Vault.Saved =>
+                  Put_Line ("✓ vault initialized at " & Path);
+               when SparkPass.Vault.Io_Error =>
+                  Put_Line ("✗ failed to save vault (I/O error)");
+            end case;
+            SparkPass.Vault.Clear (Vault_Buffer);
+            SparkPass.Crypto.Zeroize.Wipe (Password);
+            SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+         end;
+
+      elsif Cmd = "doctor" then
+         if Argument_Count < 2 then
+            Usage;
+            return;
+         end if;
+        declare
+           Path    : constant String := Argument (2);
+           Header  : SparkPass.Types.Header;
+           Entries : SparkPass.Types.Entry_Table;
+           Count   : SparkPass.Types.Entry_Count_Type;
+            Status  : SparkPass.Vault.Storage.Status;
+         begin
+            SparkPass.Vault.Storage.Load (Path, Header, Entries, Count, Status);
+            case Status is
+               when SparkPass.Vault.Storage.Ok =>
+                  Put_Line ("Vault fingerprint: ");
+                  declare
+                     Hex : String (1 .. Header.Vault_Fingerprint'Length * 2);
+                     Hex_Map : constant array (Interfaces.Unsigned_8 range 0 .. 15) of Character :=
+                       ('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f');
+                  begin
+                     for Index in Header.Vault_Fingerprint'Range loop
+                        declare
+                           Value : constant Interfaces.Unsigned_8 := Interfaces.Unsigned_8 (Header.Vault_Fingerprint (Index));
+                           Pos   : constant Natural := (Index - Header.Vault_Fingerprint'First) * 2;
+                        begin
+                           Hex (Pos + 1) := Hex_Map (Interfaces.Unsigned_8 (Value / 16));
+                           Hex (Pos + 2) := Hex_Map (Interfaces.Unsigned_8 (Value mod 16));
+                        end;
+                     end loop;
+                     Put_Line (Hex);
+                  end;
+                  Put_Line ("Entries: " & Interfaces.Unsigned_32'Image (Header.Entry_Count));
+               when SparkPass.Vault.Storage.Io_Error =>
+                  Put_Line ("✗ failed to load vault (I/O error)");
+               when SparkPass.Vault.Storage.Format_Error =>
+                  Put_Line ("✗ failed to load vault (format error)");
+               when SparkPass.Vault.Storage.Integrity_Error =>
+                  Put_Line ("✗ failed to load vault (integrity error)");
+            end case;
+
+            SparkPass.Crypto.Zeroize.Wipe (Header.Wrapped_Master_Key);
+            SparkPass.Crypto.Zeroize.Wipe (Header.Wrapped_Master_Nonce);
+            SparkPass.Crypto.Zeroize.Wipe (Header.Wrapped_Master_Tag);
+            SparkPass.Crypto.Zeroize.Wipe (Header.Chain_Key_Value);
+            SparkPass.Crypto.Zeroize.Wipe (Header.Chain_Key_Nonce);
+            SparkPass.Crypto.Zeroize.Wipe (Header.Chain_Key_Tag);
+            SparkPass.Crypto.Zeroize.Wipe (Header.MLDsa_Secret_Value);
+            SparkPass.Crypto.Zeroize.Wipe (Header.MLDsa_Secret_Nonce);
+            SparkPass.Crypto.Zeroize.Wipe (Header.MLDsa_Secret_Tag);
+            SparkPass.Crypto.Zeroize.Wipe (Header.MLDsa_Public_Key);
+            SparkPass.Crypto.Zeroize.Wipe (Header.MLKem_Public_Key);
+            SparkPass.Crypto.Zeroize.Wipe (Header.Header_Signature);
+            SparkPass.Crypto.Zeroize.Wipe (Header.Argon2_Salt);
+            SparkPass.Crypto.Zeroize.Wipe (Header.Vault_Fingerprint);
+
+            for Index in Entries'Range loop
+               SparkPass.Crypto.Zeroize.Wipe (Entries (Index).Ciphertext);
+               SparkPass.Crypto.Zeroize.Wipe (Entries (Index).Label);
+               SparkPass.Crypto.Zeroize.Wipe (Entries (Index).Signature);
+               SparkPass.Crypto.Zeroize.Wipe (Entries (Index).Nonce);
+               SparkPass.Crypto.Zeroize.Wipe (Entries (Index).Tag);
+               SparkPass.Crypto.Zeroize.Wipe (Entries (Index).Id);
+            end loop;
+         end;
+
+      elsif Cmd = "unlock" then
+         if Argument_Count < 2 then
+            Usage;
+            return;
+         end if;
+         declare
+            Path         : constant String := Argument (2);
+            Password_Buf : Byte_Array (1 .. SparkPass.Config.Password_Buffer_Size) := (others => 0);
+            Password_Len : Natural;
+            Read_Success : Boolean;
+            Password     : Byte_Array (1 .. SparkPass.Config.Password_Buffer_Size) := (others => 0);
+            Open_State   : SparkPass.Vault.Open_Status;
+         begin
+            SparkPass.CLI.Password_Input.Read_Password
+              ("Enter password: ", Password_Buf, Password_Len, Read_Success);
+
+            if not Read_Success then
+               Put_Line ("✗ failed to read password");
+               SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+               return;
+            end if;
+
+            if Password_Len = 0 then
+               Put_Line ("✗ password must not be empty");
+               SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+               return;
+            end if;
+
+            if Password_Len < SparkPass.Config.Min_Password_Length then
+               Put_Line ("✗ password must be at least" & Natural'Image (SparkPass.Config.Min_Password_Length) & " characters");
+               SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+               return;
+            end if;
+
+            for I in 0 .. Password_Len - 1 loop
+               Password (Password'First + I) := Password_Buf (Password_Buf'First + I);
+            end loop;
+
+            SparkPass.Vault.Clear (Vault_Buffer);
+            SparkPass.Vault.Open (Vault_Buffer, Path, Password (1 .. Password_Len), Open_State);
+            case Open_State is
+               when SparkPass.Vault.Success =>
+                  Put_Line ("✓ password accepted");
+                  SparkPass.Vault.Clear (Vault_Buffer);
+               when SparkPass.Vault.Authentication_Failed =>
+                  Put_Line ("✗ authentication failed");
+               when SparkPass.Vault.Io_Error =>
+                  Put_Line ("✗ failed to open vault (I/O error)");
+               when SparkPass.Vault.Format_Error =>
+                  Put_Line ("✗ failed to open vault (format error)");
+               when SparkPass.Vault.Integrity_Error =>
+                  Put_Line ("✗ failed to open vault (integrity error)");
+            end case;
+            SparkPass.Crypto.Zeroize.Wipe (Password);
+            SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+         end;
+
+      elsif Cmd = "add" then
+         if Argument_Count < 3 then
+            Usage;
+            return;
+         end if;
+
+         declare
+            Path         : constant String := Argument (2);
+            Label_Str    : constant String := Argument (3);
+            Secret_Buf   : Byte_Array (1 .. SparkPass.Config.Max_Data_Length) := (others => 0);
+            Secret_Len   : Natural;
+            Password_Buf : Byte_Array (1 .. SparkPass.Config.Password_Buffer_Size) := (others => 0);
+            Password_Len : Natural;
+            Read_Success : Boolean;
+            Password     : Byte_Array (1 .. SparkPass.Config.Password_Buffer_Size) := (others => 0);
+            Label        : Byte_Array := To_Bytes (Label_Str);
+            Open_State   : SparkPass.Vault.Open_Status;
+            Added        : Boolean := False;
+            Save_State   : SparkPass.Vault.Save_Status;
+         begin
+            if Label_Str'Length = 0 or else Label_Str'Length > SparkPass.Config.Max_Label_Length then
+               Put_Line ("✗ label length invalid");
+               SparkPass.Crypto.Zeroize.Wipe (Label);
+               SparkPass.Crypto.Zeroize.Wipe (Secret_Buf);
+               return;
+            end if;
+
+            --  Prompt for secret securely (not from command-line)
+            SparkPass.CLI.Password_Input.Read_Password
+              ("Enter secret: ", Secret_Buf, Secret_Len, Read_Success);
+
+            if not Read_Success then
+               Put_Line ("✗ failed to read secret");
+               SparkPass.Crypto.Zeroize.Wipe (Label);
+               SparkPass.Crypto.Zeroize.Wipe (Secret_Buf);
+               return;
+            end if;
+
+            if Secret_Len = 0 or else Secret_Len > SparkPass.Config.Max_Data_Length then
+               Put_Line ("✗ entry data length invalid");
+               SparkPass.Crypto.Zeroize.Wipe (Label);
+               SparkPass.Crypto.Zeroize.Wipe (Secret_Buf);
+               return;
+            end if;
+
+            SparkPass.CLI.Password_Input.Read_Password
+              ("Enter password: ", Password_Buf, Password_Len, Read_Success);
+
+            if not Read_Success then
+               Put_Line ("✗ failed to read password");
+               SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+               SparkPass.Crypto.Zeroize.Wipe (Label);
+               SparkPass.Crypto.Zeroize.Wipe (Secret_Buf);
+               return;
+            end if;
+
+            if Password_Len = 0 then
+                Put_Line ("✗ password must not be empty");
+                SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+                SparkPass.Crypto.Zeroize.Wipe (Label);
+                SparkPass.Crypto.Zeroize.Wipe (Secret_Buf);
+                return;
+            end if;
+
+            if Password_Len < SparkPass.Config.Min_Password_Length then
+               Put_Line ("✗ password must be at least" & Natural'Image (SparkPass.Config.Min_Password_Length) & " characters");
+               SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+               SparkPass.Crypto.Zeroize.Wipe (Label);
+               SparkPass.Crypto.Zeroize.Wipe (Secret_Buf);
+               return;
+            end if;
+
+            for I in 0 .. Password_Len - 1 loop
+               Password (Password'First + I) := Password_Buf (Password_Buf'First + I);
+            end loop;
+
+            SparkPass.Vault.Clear (Vault_Buffer);
+            SparkPass.Vault.Open (Vault_Buffer, Path, Password (1 .. Password_Len), Open_State);
+            case Open_State is
+               when SparkPass.Vault.Success =>
+                  SparkPass.Vault.Add_Entry
+                    (State     => Vault_Buffer,
+                     Label     => Label,
+                     Kind      => SparkPass.Types.Password,
+                     Plaintext => Secret_Buf (1 .. Secret_Len),
+                     Timestamp => Timestamp,
+                     Success   => Added);
+                  if Added then
+                     SparkPass.Vault.Save (Vault_Buffer, Path, Save_State);
+                     case Save_State is
+                        when SparkPass.Vault.Saved =>
+                           Put_Line ("✓ entry added");
+                        when SparkPass.Vault.Io_Error =>
+                           Put_Line ("✗ failed to save vault (I/O error)");
+                     end case;
+                  else
+                     Put_Line ("✗ entry not added");
+                  end if;
+                  SparkPass.Vault.Clear (Vault_Buffer);
+               when SparkPass.Vault.Authentication_Failed =>
+                  Put_Line ("✗ authentication failed");
+               when SparkPass.Vault.Io_Error =>
+                  Put_Line ("✗ failed to open vault (I/O error)");
+               when SparkPass.Vault.Format_Error =>
+                  Put_Line ("✗ failed to open vault (format error)");
+               when SparkPass.Vault.Integrity_Error =>
+                  Put_Line ("✗ failed to open vault (integrity error)");
+            end case;
+
+            SparkPass.Crypto.Zeroize.Wipe (Password);
+            SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+            SparkPass.Crypto.Zeroize.Wipe (Label);
+            SparkPass.Crypto.Zeroize.Wipe (Secret_Buf);
+         end;
+
+      elsif Cmd = "get" then
+         if Argument_Count < 3 then
+            Usage;
+            return;
+         end if;
+
+         declare
+            Path         : constant String := Argument (2);
+            Label_Str    : constant String := Argument (3);
+            Password_Buf : Byte_Array (1 .. SparkPass.Config.Password_Buffer_Size) := (others => 0);
+            Password_Len : Natural;
+            Read_Success : Boolean;
+            Password     : Byte_Array (1 .. SparkPass.Config.Password_Buffer_Size) := (others => 0);
+            Label        : Byte_Array := To_Bytes (Label_Str);
+            Open_State   : SparkPass.Vault.Open_Status;
+            Plain        : Byte_Array (1 .. SparkPass.Config.Max_Data_Length) := (others => 0);
+            Data_Len     : Natural := 0;
+            Found        : Boolean := False;
+         begin
+            if Label_Str'Length = 0 then
+               Put_Line ("✗ label must not be empty");
+               SparkPass.Crypto.Zeroize.Wipe (Label);
+               return;
+            end if;
+
+            if Label_Str'Length > SparkPass.Config.Max_Label_Length then
+               Put_Line ("✗ label length invalid");
+               SparkPass.Crypto.Zeroize.Wipe (Label);
+               return;
+            end if;
+
+            SparkPass.CLI.Password_Input.Read_Password
+              ("Enter password: ", Password_Buf, Password_Len, Read_Success);
+
+            if not Read_Success then
+               Put_Line ("✗ failed to read password");
+               SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+               SparkPass.Crypto.Zeroize.Wipe (Label);
+               return;
+            end if;
+
+            if Password_Len = 0 then
+               Put_Line ("✗ password must not be empty");
+               SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+               SparkPass.Crypto.Zeroize.Wipe (Label);
+               return;
+            end if;
+
+            if Password_Len < SparkPass.Config.Min_Password_Length then
+               Put_Line ("✗ password must be at least" & Natural'Image (SparkPass.Config.Min_Password_Length) & " characters");
+               SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+               SparkPass.Crypto.Zeroize.Wipe (Label);
+               return;
+            end if;
+
+            for I in 0 .. Password_Len - 1 loop
+               Password (Password'First + I) := Password_Buf (Password_Buf'First + I);
+            end loop;
+
+            SparkPass.Vault.Clear (Vault_Buffer);
+            SparkPass.Vault.Open (Vault_Buffer, Path, Password (1 .. Password_Len), Open_State);
+            case Open_State is
+               when SparkPass.Vault.Success =>
+                  SparkPass.Vault.Get_Entry
+                    (State     => Vault_Buffer,
+                     Label     => Label,
+                     Plaintext => Plain,
+                     Data_Len  => Data_Len,
+                     Success   => Found);
+                  if Found then
+                     declare
+                        Secret : constant String := To_String (Plain, Data_Len);
+                        Confirm : String (1 .. 256);
+                        Last : Natural;
+                     begin
+                        Put ("WARNING: Secret will be printed to stdout. Continue? (y/N): ");
+                        Flush;
+                        Get_Line (Confirm, Last);
+
+                        if Last > 0 and then (Confirm (1) = 'y' or else Confirm (1) = 'Y') then
+                           Put_Line ("✓ " & Secret);
+                        else
+                           Put_Line ("Cancelled - secret not displayed");
+                        end if;
+                     end;
+                  else
+                     Put_Line ("✗ entry not found");
+                  end if;
+                  SparkPass.Vault.Clear (Vault_Buffer);
+               when SparkPass.Vault.Authentication_Failed =>
+                  Put_Line ("✗ authentication failed");
+               when SparkPass.Vault.Io_Error =>
+                  Put_Line ("✗ failed to open vault (I/O error)");
+               when SparkPass.Vault.Format_Error =>
+                  Put_Line ("✗ failed to open vault (format error)");
+               when SparkPass.Vault.Integrity_Error =>
+                  Put_Line ("✗ failed to open vault (integrity error)");
+            end case;
+
+            SparkPass.Crypto.Zeroize.Wipe (Password);
+            SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+            SparkPass.Crypto.Zeroize.Wipe (Label);
+            SparkPass.Crypto.Zeroize.Wipe (Plain);
+         end;
+
+      elsif Cmd = "ls" then
+         if Argument_Count < 2 then
+            Usage;
+            return;
+         end if;
+
+         declare
+            Path         : constant String := Argument (2);
+            Password_Buf : Byte_Array (1 .. SparkPass.Config.Password_Buffer_Size) := (others => 0);
+            Password_Len : Natural;
+            Read_Success : Boolean;
+            Password     : Byte_Array (1 .. SparkPass.Config.Password_Buffer_Size) := (others => 0);
+            Open_State   : SparkPass.Vault.Open_Status;
+         begin
+            SparkPass.CLI.Password_Input.Read_Password
+              ("Enter password: ", Password_Buf, Password_Len, Read_Success);
+
+            if not Read_Success then
+               Put_Line ("✗ failed to read password");
+               SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+               return;
+            end if;
+
+            if Password_Len = 0 then
+               Put_Line ("✗ password must not be empty");
+               SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+               return;
+            end if;
+
+            if Password_Len < SparkPass.Config.Min_Password_Length then
+               Put_Line ("✗ password must be at least" & Natural'Image (SparkPass.Config.Min_Password_Length) & " characters");
+               SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+               return;
+            end if;
+
+            for I in 0 .. Password_Len - 1 loop
+               Password (Password'First + I) := Password_Buf (Password_Buf'First + I);
+            end loop;
+
+            SparkPass.Vault.Clear (Vault_Buffer);
+            SparkPass.Vault.Open (Vault_Buffer, Path, Password (1 .. Password_Len), Open_State);
+            case Open_State is
+               when SparkPass.Vault.Success =>
+                  Put_Line ("Entries: " & Interfaces.Unsigned_32'Image (Vault_Buffer.Entry_Count));
+                  for Index in 1 .. Natural (Vault_Buffer.Entry_Count) loop
+                     declare
+                        Vault_Entry : constant SparkPass.Types.Entry_Record := Vault_Buffer.Entries (Index);
+                        Label_Length : constant Natural := Natural (Vault_Entry.Label_Len);
+                        Label_Value  : constant String := To_String (Vault_Entry.Label, Label_Length);
+                     begin
+                        Put_Line ("  - " & Label_Value &
+                                  " [" & SparkPass.Types.Entry_Type'Image (Vault_Entry.Kind) & "]");
+                     end;
+                  end loop;
+                  SparkPass.Vault.Clear (Vault_Buffer);
+               when SparkPass.Vault.Authentication_Failed =>
+                  Put_Line ("✗ authentication failed");
+               when SparkPass.Vault.Io_Error =>
+                  Put_Line ("✗ failed to open vault (I/O error)");
+               when SparkPass.Vault.Format_Error =>
+                  Put_Line ("✗ failed to open vault (format error)");
+               when SparkPass.Vault.Integrity_Error =>
+                  Put_Line ("✗ failed to open vault (integrity error)");
+            end case;
+
+            SparkPass.Crypto.Zeroize.Wipe (Password);
+            SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+         end;
+
+      elsif Cmd = "rm" then
+         if Argument_Count < 3 then
+            Usage;
+            return;
+         end if;
+
+        declare
+           Path         : constant String := Argument (2);
+            Label_Str    : constant String := Argument (3);
+            Password_Buf : Byte_Array (1 .. SparkPass.Config.Password_Buffer_Size) := (others => 0);
+            Password_Len : Natural;
+            Read_Success : Boolean;
+            Password     : Byte_Array (1 .. SparkPass.Config.Password_Buffer_Size) := (others => 0);
+            Label        : Byte_Array := To_Bytes (Label_Str);
+            Open_State   : SparkPass.Vault.Open_Status;
+            Removed      : Boolean := False;
+            Save_State   : SparkPass.Vault.Save_Status;
+         begin
+            if Label_Str'Length = 0 then
+               Put_Line ("✗ label must not be empty");
+               SparkPass.Crypto.Zeroize.Wipe (Label);
+               return;
+            end if;
+
+            if Label_Str'Length > SparkPass.Config.Max_Label_Length then
+               Put_Line ("✗ label length invalid");
+               SparkPass.Crypto.Zeroize.Wipe (Label);
+               return;
+            end if;
+
+            SparkPass.CLI.Password_Input.Read_Password
+              ("Enter password: ", Password_Buf, Password_Len, Read_Success);
+
+            if not Read_Success then
+               Put_Line ("✗ failed to read password");
+               SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+               SparkPass.Crypto.Zeroize.Wipe (Label);
+               return;
+            end if;
+
+            if Password_Len = 0 then
+               Put_Line ("✗ password must not be empty");
+               SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+               SparkPass.Crypto.Zeroize.Wipe (Label);
+               return;
+            end if;
+
+            if Password_Len < SparkPass.Config.Min_Password_Length then
+               Put_Line ("✗ password must be at least" & Natural'Image (SparkPass.Config.Min_Password_Length) & " characters");
+               SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+               SparkPass.Crypto.Zeroize.Wipe (Label);
+               return;
+            end if;
+
+            for I in 0 .. Password_Len - 1 loop
+               Password (Password'First + I) := Password_Buf (Password_Buf'First + I);
+            end loop;
+
+            SparkPass.Vault.Clear (Vault_Buffer);
+            SparkPass.Vault.Open (Vault_Buffer, Path, Password (1 .. Password_Len), Open_State);
+            case Open_State is
+               when SparkPass.Vault.Success =>
+                  SparkPass.Vault.Remove_Entry
+                    (State     => Vault_Buffer,
+                     Label     => Label,
+                     Timestamp => Timestamp,
+                     Success   => Removed);
+                  if Removed then
+                     SparkPass.Vault.Save (Vault_Buffer, Path, Save_State);
+                     case Save_State is
+                        when SparkPass.Vault.Saved =>
+                           Put_Line ("✓ entry removed");
+                        when SparkPass.Vault.Io_Error =>
+                           Put_Line ("✗ failed to save vault (I/O error)");
+                     end case;
+                  else
+                     Put_Line ("✗ entry not found");
+                  end if;
+                  SparkPass.Vault.Clear (Vault_Buffer);
+               when SparkPass.Vault.Authentication_Failed =>
+                  Put_Line ("✗ authentication failed");
+               when SparkPass.Vault.Io_Error =>
+                  Put_Line ("✗ failed to open vault (I/O error)");
+               when SparkPass.Vault.Format_Error =>
+                  Put_Line ("✗ failed to open vault (format error)");
+               when SparkPass.Vault.Integrity_Error =>
+                  Put_Line ("✗ failed to open vault (integrity error)");
+            end case;
+
+            SparkPass.Crypto.Zeroize.Wipe (Password);
+            SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+            SparkPass.Crypto.Zeroize.Wipe (Label);
+         end;
+
+      elsif Cmd = "rotate" then
+         if Argument_Count < 2 then
+            Usage;
+            return;
+         end if;
+
+         declare
+            Path         : constant String := Argument (2);
+            Password_Buf : Byte_Array (1 .. SparkPass.Config.Password_Buffer_Size) := (others => 0);
+            Password_Len : Natural;
+            Read_Success : Boolean;
+            Password     : Byte_Array (1 .. SparkPass.Config.Password_Buffer_Size) := (others => 0);
+            Open_State   : SparkPass.Vault.Open_Status;
+            Rotated      : Boolean := False;
+            Save_State   : SparkPass.Vault.Save_Status;
+         begin
+            SparkPass.CLI.Password_Input.Read_Password
+              ("Enter password: ", Password_Buf, Password_Len, Read_Success);
+
+            if not Read_Success then
+               Put_Line ("✗ failed to read password");
+               SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+               return;
+            end if;
+
+            if Password_Len = 0 then
+               Put_Line ("✗ password must not be empty");
+               SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+               return;
+            end if;
+
+            if Password_Len < SparkPass.Config.Min_Password_Length then
+               Put_Line ("✗ password must be at least" & Natural'Image (SparkPass.Config.Min_Password_Length) & " characters");
+               SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+               return;
+            end if;
+
+            for I in 0 .. Password_Len - 1 loop
+               Password (Password'First + I) := Password_Buf (Password_Buf'First + I);
+            end loop;
+
+            Put_Line ("Rotating master key...");
+            SparkPass.Vault.Clear (Vault_Buffer);
+            SparkPass.Vault.Open (Vault_Buffer, Path, Password (1 .. Password_Len), Open_State);
+            case Open_State is
+               when SparkPass.Vault.Success =>
+                  SparkPass.Vault.Rotate_Master_Key
+                    (State     => Vault_Buffer,
+                     Timestamp => Timestamp,
+                     Success   => Rotated);
+                  if Rotated then
+                     Put_Line ("  - Generating new master key... ✓");
+                     Put_Line ("  - Re-encrypting all entries (" &
+                              Interfaces.Unsigned_32'Image (Vault_Buffer.Entry_Count) & ")... ✓");
+                     Put_Line ("  - Updating chain key... ✓");
+                     SparkPass.Vault.Save (Vault_Buffer, Path, Save_State);
+                     case Save_State is
+                        when SparkPass.Vault.Saved =>
+                           Put_Line ("  - Signing vault... ✓");
+                           Put_Line ("✓ Master key rotated");
+                           Put_Line ("✓ Vault saved");
+                        when SparkPass.Vault.Io_Error =>
+                           Put_Line ("✗ failed to save vault (I/O error)");
+                     end case;
+                  else
+                     Put_Line ("✗ key rotation failed");
+                  end if;
+                  SparkPass.Vault.Clear (Vault_Buffer);
+               when SparkPass.Vault.Authentication_Failed =>
+                  Put_Line ("✗ authentication failed");
+               when SparkPass.Vault.Io_Error =>
+                  Put_Line ("✗ failed to open vault (I/O error)");
+               when SparkPass.Vault.Format_Error =>
+                  Put_Line ("✗ failed to open vault (format error)");
+               when SparkPass.Vault.Integrity_Error =>
+                  Put_Line ("✗ failed to open vault (integrity error)");
+            end case;
+
+            SparkPass.Crypto.Zeroize.Wipe (Password);
+            SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+         end;
+
+      elsif Cmd = "export" then
+         if Argument_Count < 2 then
+            Usage;
+            return;
+         end if;
+
+         declare
+            Path           : constant String := Argument (2);
+            Password_Buf   : Byte_Array (1 .. SparkPass.Config.Password_Buffer_Size) := (others => 0);
+            Password_Len   : Natural;
+            Read_Success   : Boolean;
+            Password       : Byte_Array (1 .. SparkPass.Config.Password_Buffer_Size) := (others => 0);
+            Open_State     : SparkPass.Vault.Open_Status;
+            Export_Success : Boolean := False;
+            Recovery_Path  : constant String := Path & ".recovery";
+         begin
+            SparkPass.CLI.Password_Input.Read_Password
+              ("Enter password: ", Password_Buf, Password_Len, Read_Success);
+
+            if not Read_Success then
+               Put_Line ("✗ failed to read password");
+               SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+               return;
+            end if;
+
+            if Password_Len = 0 then
+               Put_Line ("✗ password must not be empty");
+               SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+               return;
+            end if;
+
+            if Password_Len < SparkPass.Config.Min_Password_Length then
+               Put_Line ("✗ password must be at least" & Natural'Image (SparkPass.Config.Min_Password_Length) & " characters");
+               SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+               return;
+            end if;
+
+            for I in 0 .. Password_Len - 1 loop
+               Password (Password'First + I) := Password_Buf (Password_Buf'First + I);
+            end loop;
+
+            Put_Line ("Generating recovery share with ML-KEM-1024...");
+            SparkPass.Vault.Clear (Vault_Buffer);
+            SparkPass.Vault.Open (Vault_Buffer, Path, Password (1 .. Password_Len), Open_State);
+            case Open_State is
+               when SparkPass.Vault.Success =>
+                  SparkPass.Vault.Export_Recovery
+                    (State         => Vault_Buffer,
+                     Recovery_Path => Recovery_Path,
+                     Success       => Export_Success);
+                  if Export_Success then
+                     Put_Line ("✓ Recovery share created: " & Recovery_Path);
+                     Put_Line ("");
+                     Put_Line ("IMPORTANT:");
+                     Put_Line ("  1. Store recovery file in a safe place");
+                     Put_Line ("  2. Test recovery before relying on it");
+                     Put_Line ("  3. Keep recovery file secure (contains ML-KEM secret key)");
+                  else
+                     Put_Line ("✗ failed to create recovery share");
+                  end if;
+                  SparkPass.Vault.Clear (Vault_Buffer);
+               when SparkPass.Vault.Authentication_Failed =>
+                  Put_Line ("✗ authentication failed");
+               when SparkPass.Vault.Io_Error =>
+                  Put_Line ("✗ failed to open vault (I/O error)");
+               when SparkPass.Vault.Format_Error =>
+                  Put_Line ("✗ failed to open vault (format error)");
+               when SparkPass.Vault.Integrity_Error =>
+                  Put_Line ("✗ failed to open vault (integrity error)");
+            end case;
+
+            SparkPass.Crypto.Zeroize.Wipe (Password);
+            SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+         end;
+
+      elsif Cmd = "import" then
+         if Argument_Count < 3 then
+            Usage;
+            return;
+         end if;
+
+         declare
+            Vault_Path     : constant String := Argument (2);
+            Recovery_Path  : constant String := Argument (3);
+            Password_Buf   : Byte_Array (1 .. SparkPass.Config.Password_Buffer_Size) := (others => 0);
+            Password_Len   : Natural;
+            Read_Success   : Boolean;
+            Password       : Byte_Array (1 .. SparkPass.Config.Password_Buffer_Size) := (others => 0);
+            Import_Success : Boolean := False;
+         begin
+            SparkPass.CLI.Password_Input.Read_Password
+              ("Enter password: ", Password_Buf, Password_Len, Read_Success);
+
+            if not Read_Success then
+               Put_Line ("✗ failed to read password");
+               SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+               return;
+            end if;
+
+            if Password_Len = 0 then
+               Put_Line ("✗ password must not be empty");
+               SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+               return;
+            end if;
+
+            if Password_Len < SparkPass.Config.Min_Password_Length then
+               Put_Line ("✗ password must be at least" & Natural'Image (SparkPass.Config.Min_Password_Length) & " characters");
+               SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+               return;
+            end if;
+
+            for I in 0 .. Password_Len - 1 loop
+               Password (Password'First + I) := Password_Buf (Password_Buf'First + I);
+            end loop;
+
+            Put_Line ("Reading recovery share...");
+            SparkPass.Vault.Clear (Vault_Buffer);
+            SparkPass.Vault.Import_Recovery
+              (Vault_Path    => Vault_Path,
+               Recovery_Path => Recovery_Path,
+               Password      => Password (1 .. Password_Len),
+               State         => Vault_Buffer,
+               Success       => Import_Success);
+
+            if Import_Success then
+               Put_Line ("✓ Vault recovered successfully!");
+               Put_Line ("");
+               Put_Line ("Note: Keys have been recovered from the recovery file.");
+               Put_Line ("      You can now access your vault entries.");
+            else
+               Put_Line ("✗ failed to import recovery share");
+            end if;
+
+            SparkPass.Vault.Clear (Vault_Buffer);
+            SparkPass.Crypto.Zeroize.Wipe (Password);
+            SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+         end;
+
+      elsif Cmd = "sizes" then
+         --  Diagnostic: Show actual liboqs sizes
+         declare
+            use Interfaces.C;
+            use Interfaces.C.Strings;
+            use type Bindings.LibOQS.Kem_Handle;
+            use type Bindings.LibOQS.Sig_Handle;
+            Kem_Name_C : chars_ptr := New_String ("ML-KEM-1024");
+            Sig_Name_C : chars_ptr := New_String ("ML-DSA-87");
+            Kem : Bindings.LibOQS.Kem_Handle;
+            Sig : Bindings.LibOQS.Sig_Handle;
+         begin
+            Kem := Bindings.LibOQS.OQS_KEM_New (Kem_Name_C);
+            if Kem /= null then
+               Put_Line ("ML-KEM-1024 actual sizes (from liboqs):");
+               Put_Line ("  Public key: " & Natural'Image (Natural (size_t'Pos (Kem.all.Length_Public_Key))) & " bytes");
+               Put_Line ("  Secret key: " & Natural'Image (Natural (size_t'Pos (Kem.all.Length_Secret_Key))) & " bytes");
+               Put_Line ("  Ciphertext: " & Natural'Image (Natural (size_t'Pos (Kem.all.Length_Ciphertext))) & " bytes");
+               Put_Line ("  Shared sec: " & Natural'Image (Natural (size_t'Pos (Kem.all.Length_Shared_Secret))) & " bytes");
+               Bindings.LibOQS.OQS_KEM_Free (Kem);
+            else
+               Put_Line ("✗ ML-KEM-1024 not available");
+            end if;
+
+            Put_Line ("");
+            Sig := Bindings.LibOQS.OQS_SIG_New (Sig_Name_C);
+            if Sig /= null then
+               Put_Line ("ML-DSA-87 actual sizes (from liboqs):");
+               Put_Line ("  Public key: " & Natural'Image (Natural (size_t'Pos (Sig.all.Length_Public_Key))) & " bytes");
+               Put_Line ("  Secret key: " & Natural'Image (Natural (size_t'Pos (Sig.all.Length_Secret_Key))) & " bytes");
+               Put_Line ("  Signature:  " & Natural'Image (Natural (size_t'Pos (Sig.all.Length_Signature))) & " bytes");
+               Bindings.LibOQS.OQS_SIG_Free (Sig);
+            else
+               Put_Line ("✗ ML-DSA-87 not available");
+            end if;
+
+            Put_Line ("");
+            Put_Line ("SparkPass.Config constants:");
+            Put_Line ("  ML-KEM-1024 public:  " & Positive'Image (SparkPass.Config.MLKem_Public_Key_Length));
+            Put_Line ("  ML-KEM-1024 secret:  " & Positive'Image (SparkPass.Config.MLKem_Secret_Key_Length));
+            Put_Line ("  ML-KEM-1024 cipher:  " & Positive'Image (SparkPass.Config.MLKem_Ciphertext_Length));
+            Put_Line ("  ML-KEM-1024 shared:  " & Positive'Image (SparkPass.Config.MLKem_Shared_Key_Length));
+            Put_Line ("  ML-DSA-87 public:    " & Positive'Image (SparkPass.Config.MLDsa_Public_Key_Length));
+            Put_Line ("  ML-DSA-87 secret:    " & Positive'Image (SparkPass.Config.MLDsa_Secret_Key_Length));
+            Put_Line ("  ML-DSA-87 signature: " & Positive'Image (SparkPass.Config.MLDsa_Signature_Length));
+
+            Free (Kem_Name_C);
+            Free (Sig_Name_C);
+         end;
+
+      elsif Cmd = "pqtest" then
+        declare
+           LibOQS_OK : constant Boolean := SparkPass.Crypto.LibOQS.Self_Test;
+           Report    : SparkPass.Crypto.Self_Test.Report;
+           use type SparkPass.Crypto.Self_Test.Stage_Status;
+           use type SparkPass.Crypto.Self_Test.Tamper_Status;
+
+            function Bool_Icon (Value : Boolean) return String is
+              (if Value then "✓" else "✗");
+
+            function Stage_Icon (Status : SparkPass.Crypto.Self_Test.Stage_Status) return String is
+              (if Status = SparkPass.Crypto.Self_Test.Succeeded then "✓" else "✗");
+
+            function Tamper_Image (Status : SparkPass.Crypto.Self_Test.Tamper_Status) return String is
+              (if Status = SparkPass.Crypto.Self_Test.Detected then "✓ detected" else "✗ not detected");
+
+            function Duration_Image (Value : Duration) return String is
+               Raw   : constant String := Duration'Image (Value);
+               First : Positive := Raw'First;
+            begin
+               while First <= Raw'Last and then Raw (First) = ' ' loop
+                  First := First + 1;
+               end loop;
+               return Raw (First .. Raw'Last) & " s";
+            end Duration_Image;
+         begin
+            SparkPass.Crypto.Self_Test.Run (Report);
+
+            if LibOQS_OK and SparkPass.Crypto.Self_Test.Passed (Report) then
+               Put_Line ("✓ PQ stack self-test passed");
+            else
+               Put_Line ("✗ PQ stack self-test failed");
+            end if;
+
+            Put_Line ("  liboqs      : " & Bool_Icon (LibOQS_OK));
+            Put_Line ("  argon2id    : " &
+                      Stage_Icon (Report.Argon2_Status) &
+                      " [" &
+                      Duration_Image (Report.Argon2_Duration) &
+                      (if Report.Argon2_Used_Strong_Params then "" else ", reduced params") &
+                      "]");
+            Put_Line ("  hkdf        : " & Stage_Icon (Report.HKDF_Status));
+            Put_Line ("  aes-gcm-siv : " & Stage_Icon (Report.AES_Status));
+            Put_Line ("  ml-kem      : " & Stage_Icon (Report.MLKEM_Status));
+            Put_Line ("  ml-dsa      : " & Stage_Icon (Report.MLDSA_Status));
+            Put_Line ("  tamper      : " & Tamper_Image (Report.MLDSA_Tamper));
+            Put_Line ("  zeroization : " & Stage_Icon (Report.Zeroization_Status));
+         end;
+
+      else
+         Put_Line ("unknown command: " & Cmd);
+         Usage;
+      end if;
+   end;
+
+   --  Clean up heap-allocated vault buffer
+   SparkPass.Vault.Clear (Vault_Buffer.all);
+   Free (Vault_Buffer);
+
+exception
+   when others =>
+      --  Ensure cleanup even on exceptions
+      if Vault_Buffer /= null then
+         SparkPass.Vault.Clear (Vault_Buffer.all);
+         Free (Vault_Buffer);
+      end if;
+      raise;
+end Sparkpass_Main;
