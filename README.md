@@ -58,7 +58,7 @@ chmod +x bin/sparkpass_main
 ./bin/sparkpass_main --version
 ```
 
-**SHA256**: `040aba13224fff79ea7edc0948e93ec2bbaa4a3eec2c97a2b0633f0174c02eb1`
+**SHA256**: `eb1b05339c4598911e0a87d52597b4fe41d77b1d677869d39824b340ab8c2fb3`
 
 **Note**: This is an unsigned build. macOS Gatekeeper requires manual approval. The binary is functionally identical to what a signed version would be.
 
