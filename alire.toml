@@ -1,0 +1,23 @@
+name = "sparkpass"
+description = "Quantum-resistant password manager with SPARK verification"
+version = "2.0.8"
+
+authors = ["AnubisQuantumCipher"]
+maintainers = ["sic.tau@pm.me"]
+licenses = "MIT"
+website = "https://github.com/AnubisQuantumCipher/SparkPass"
+tags = ["crypto", "password", "post-quantum", "spark", "verification"]
+
+[gpr-externals]
+
+[configuration]
+
+[environment]
+
+[[depends-on]]
+sparknacl = "^4.0"
+
+[gpr-set-externals]
+
+[[depends-on]]
+gnatprove = "^14.1.1"

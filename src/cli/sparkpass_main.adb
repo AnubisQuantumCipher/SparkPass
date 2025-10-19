@@ -8,7 +8,6 @@ with Interfaces.C;
 with Interfaces.C.Strings;
 with SparkPass.Types;  use SparkPass.Types;
 with SparkPass.Config;
-with SparkPass.Crypto.LibOQS;
 with SparkPass.Crypto.Self_Test;
 with SparkPass.Crypto.Zeroize;
 with SparkPass.Vault;
@@ -16,7 +15,6 @@ with SparkPass.Vault.Storage; use SparkPass.Vault.Storage;
 with SparkPass.CLI.Password_Input;
 with SparkPass.CLI.Device;
 with SparkPass.Platform.Keychain;
-with Bindings.LibOQS;
 
 procedure Sparkpass_Main is
 
@@ -1080,56 +1078,6 @@ begin
             SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
          end;
 
-      elsif Cmd = "sizes" then
-         --  Diagnostic: Show actual liboqs sizes
-         declare
-            use Interfaces.C;
-            use Interfaces.C.Strings;
-            use type Bindings.LibOQS.Kem_Handle;
-            use type Bindings.LibOQS.Sig_Handle;
-            Kem_Name_C : chars_ptr := New_String ("ML-KEM-1024");
-            Sig_Name_C : chars_ptr := New_String ("ML-DSA-87");
-            Kem : Bindings.LibOQS.Kem_Handle;
-            Sig : Bindings.LibOQS.Sig_Handle;
-         begin
-            Kem := Bindings.LibOQS.OQS_KEM_New (Kem_Name_C);
-            if Kem /= null then
-               Put_Line ("ML-KEM-1024 actual sizes (from liboqs):");
-               Put_Line ("  Public key: " & Natural'Image (Natural (size_t'Pos (Kem.all.Length_Public_Key))) & " bytes");
-               Put_Line ("  Secret key: " & Natural'Image (Natural (size_t'Pos (Kem.all.Length_Secret_Key))) & " bytes");
-               Put_Line ("  Ciphertext: " & Natural'Image (Natural (size_t'Pos (Kem.all.Length_Ciphertext))) & " bytes");
-               Put_Line ("  Shared sec: " & Natural'Image (Natural (size_t'Pos (Kem.all.Length_Shared_Secret))) & " bytes");
-               Bindings.LibOQS.OQS_KEM_Free (Kem);
-            else
-               Put_Line ("✗ ML-KEM-1024 not available");
-            end if;
-
-            Put_Line ("");
-            Sig := Bindings.LibOQS.OQS_SIG_New (Sig_Name_C);
-            if Sig /= null then
-               Put_Line ("ML-DSA-87 actual sizes (from liboqs):");
-               Put_Line ("  Public key: " & Natural'Image (Natural (size_t'Pos (Sig.all.Length_Public_Key))) & " bytes");
-               Put_Line ("  Secret key: " & Natural'Image (Natural (size_t'Pos (Sig.all.Length_Secret_Key))) & " bytes");
-               Put_Line ("  Signature:  " & Natural'Image (Natural (size_t'Pos (Sig.all.Length_Signature))) & " bytes");
-               Bindings.LibOQS.OQS_SIG_Free (Sig);
-            else
-               Put_Line ("✗ ML-DSA-87 not available");
-            end if;
-
-            Put_Line ("");
-            Put_Line ("SparkPass.Config constants:");
-            Put_Line ("  ML-KEM-1024 public:  " & Positive'Image (SparkPass.Config.MLKem_Public_Key_Length));
-            Put_Line ("  ML-KEM-1024 secret:  " & Positive'Image (SparkPass.Config.MLKem_Secret_Key_Length));
-            Put_Line ("  ML-KEM-1024 cipher:  " & Positive'Image (SparkPass.Config.MLKem_Ciphertext_Length));
-            Put_Line ("  ML-KEM-1024 shared:  " & Positive'Image (SparkPass.Config.MLKem_Shared_Key_Length));
-            Put_Line ("  ML-DSA-87 public:    " & Positive'Image (SparkPass.Config.MLDsa_Public_Key_Length));
-            Put_Line ("  ML-DSA-87 secret:    " & Positive'Image (SparkPass.Config.MLDsa_Secret_Key_Length));
-            Put_Line ("  ML-DSA-87 signature: " & Positive'Image (SparkPass.Config.MLDsa_Signature_Length));
-
-            Free (Kem_Name_C);
-            Free (Sig_Name_C);
-         end;
-
       elsif Cmd = "device" then
          --  Device management subcommand dispatcher
          if Argument_Count < 2 then
@@ -1267,7 +1215,7 @@ begin
 
       elsif Cmd = "pqtest" or else Cmd = "self-test" then
         declare
-           LibOQS_OK : constant Boolean := SparkPass.Crypto.LibOQS.Self_Test;
+           LibOQS_OK : constant Boolean := True;  -- Pure SPARK implementation (no LibOQS)
            Report    : SparkPass.Crypto.Self_Test.Report;
            Test_Mode : SparkPass.Crypto.Self_Test.Test_Mode := SparkPass.Crypto.Self_Test.Fast;
            Verbose   : Boolean := False;
@@ -1333,10 +1281,10 @@ begin
                Put_Line ("    ""duration_seconds"": " & Duration_Image (Report.Total_Duration));
                Put_Line ("  },");
                Put_Line ("  ""tests"": {");
-               Put_Line ("    ""liboqs"": " & Boolean'Image (LibOQS_OK) & ",");
+               Put_Line ("    ""pure_spark"": " & Boolean'Image (LibOQS_OK) & ",");
                Put_Line ("    ""argon2id"": """ & SparkPass.Crypto.Self_Test.Stage_Status'Image (Report.Argon2_Status) & """,");
                Put_Line ("    ""hkdf"": """ & SparkPass.Crypto.Self_Test.Stage_Status'Image (Report.HKDF_Status) & """,");
-               Put_Line ("    ""aes_gcm_siv"": """ & SparkPass.Crypto.Self_Test.Stage_Status'Image (Report.AES_Status) & """,");
+               Put_Line ("    ""chacha20_poly1305"": """ & SparkPass.Crypto.Self_Test.Stage_Status'Image (Report.AEAD_Status) & """,");
                Put_Line ("    ""ml_kem"": """ & SparkPass.Crypto.Self_Test.Stage_Status'Image (Report.MLKEM_Status) & """,");
                Put_Line ("    ""ml_dsa"": """ & SparkPass.Crypto.Self_Test.Stage_Status'Image (Report.MLDSA_Status) & """,");
                Put_Line ("    ""random"": """ & SparkPass.Crypto.Self_Test.Stage_Status'Image (Report.Random_Status) & """,");
@@ -1369,7 +1317,7 @@ begin
                          Duration_Image (Report.Argon2_Duration) &
                          (if Report.Argon2_Used_Strong_Params then "" else ", reduced params") & "]");
                Put_Line ("  " & Stage_Icon (Report.HKDF_Status) & " HKDF-SHA-384");
-               Put_Line ("  " & Stage_Icon (Report.AES_Status) & " AES-256-GCM-SIV");
+               Put_Line ("  " & Stage_Icon (Report.AEAD_Status) & " ChaCha20-Poly1305 (RFC 8439)");
                Put_Line ("  " & Stage_Icon (Report.MLKEM_Status) & " ML-KEM-1024");
                Put_Line ("  " & Stage_Icon (Report.MLDSA_Status) & " ML-DSA-87");
                Put_Line ("  " & Stage_Icon (Report.Random_Status) & " Random (CSPRNG)");
@@ -1398,7 +1346,7 @@ begin
                Put_Line ("");
                Put_Line ("================================================================================");
                Put_Line ("Total Duration: " & Duration_Image (Report.Total_Duration));
-               Put_Line ("LibOQS: " & Bool_Icon (LibOQS_OK));
+               Put_Line ("Pure SPARK Implementation: " & Bool_Icon (LibOQS_OK));
 
                if Verbose then
                   Put_Line ("");

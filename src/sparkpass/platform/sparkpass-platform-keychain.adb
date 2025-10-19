@@ -1,4 +1,5 @@
 pragma SPARK_Mode (Off);  -- FFI calls are not verifiable by SPARK
+with Ada.Text_IO;
 with Ada.Unchecked_Conversion;
 with Interfaces; use type Interfaces.Unsigned_8; use type Interfaces.Unsigned_64;
 with Interfaces.C; use type Interfaces.C.long; use type Interfaces.C.int;
@@ -190,28 +191,33 @@ package body SparkPass.Platform.Keychain is
       Auth_Result : Interfaces.C.int;
       Reason : Interfaces.C.Strings.chars_ptr;
    begin
-      Success := False;
-
       --  Step 1: Check if Touch ID / Face ID is available
       Context := LAContext_Create;
       if System.Address (Context) = System.Null_Address then
+         Ada.Text_IO.Put_Line ("[Store_Wrap_Key] ERROR: LAContext_Create failed");
          --  LAContext creation failed - fall back to no biometry
          SparkPass.Crypto.Zeroize.Wipe (Wrap_Key);
          return;
       end if;
 
+      Ada.Text_IO.Put_Line ("[Store_Wrap_Key] Step 2: Checking if biometry is available");
       Can_Use_Biometry := LAContext_CanEvaluatePolicy
         (Context,
          LAPolicy_DeviceOwnerAuthenticationWithBiometrics,
          Biometry_Error'Access);
 
       if Can_Use_Biometry = 0 then
+         Ada.Text_IO.Put_Line ("[Store_Wrap_Key] Biometry not available - exiting");
          --  Biometry not available (no Touch ID/Face ID enrolled)
          --  Fail silently - user will use password-only mode
          LAContext_Release (Context);
          SparkPass.Crypto.Zeroize.Wipe (Wrap_Key);
          return;
       end if;
+
+      Ada.Text_IO.Put_Line ("[Store_Wrap_Key] Biometry available!");
+      Ada.Text_IO.Put_Line ("[Store_Wrap_Key] Step 3: Prompting for Touch ID...");
+      Ada.Text_IO.Put_Line ("[Store_Wrap_Key] You should see Touch ID prompt now!");
 
       --  Step 2: Prompt for biometric authentication
       Reason := Interfaces.C.Strings.New_String
@@ -221,6 +227,8 @@ package body SparkPass.Platform.Keychain is
         (Context,
          LAPolicy_DeviceOwnerAuthenticationWithBiometrics,
          Reason);
+
+      Ada.Text_IO.Put_Line ("[Store_Wrap_Key] Touch ID completed, result = " & Interfaces.C.int'Image (Auth_Result));
 
       Interfaces.C.Strings.Free (Reason);
       LAContext_Release (Context);

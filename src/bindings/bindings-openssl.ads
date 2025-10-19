@@ -96,4 +96,51 @@ package Bindings.OpenSSL is
       ptr  : System.Address) return Interfaces.C.int
      with Import, Convention => C, External_Name => "EVP_CIPHER_CTX_ctrl";
 
+   --  ========================================================================
+   --  EVP Message Digest (Hash) Functions
+   --  ========================================================================
+
+   --  Message digest context (opaque)
+   type EVP_MD_CTX is null record;
+   type EVP_MD_CTX_Ptr is access all EVP_MD_CTX;
+   pragma Convention (C, EVP_MD_CTX_Ptr);
+
+   --  Message digest algorithm (opaque)
+   type EVP_MD is null record;
+   type EVP_MD_Ptr is access constant EVP_MD;
+   pragma Convention (C, EVP_MD_Ptr);
+
+   --  Context management
+   function EVP_MD_CTX_new return EVP_MD_CTX_Ptr
+     with Import, Convention => C, External_Name => "EVP_MD_CTX_new";
+
+   procedure EVP_MD_CTX_free (ctx : EVP_MD_CTX_Ptr)
+     with Import, Convention => C, External_Name => "EVP_MD_CTX_free";
+
+   --  Hash algorithm accessors
+   function EVP_sha3_512 return EVP_MD_Ptr
+     with Import, Convention => C, External_Name => "EVP_sha3_512";
+
+   function EVP_sha3_256 return EVP_MD_Ptr
+     with Import, Convention => C, External_Name => "EVP_sha3_256";
+
+   --  Digest operations
+   function EVP_DigestInit_ex
+     (ctx    : EVP_MD_CTX_Ptr;
+      typ    : EVP_MD_Ptr;
+      impl   : System.Address) return Interfaces.C.int
+     with Import, Convention => C, External_Name => "EVP_DigestInit_ex";
+
+   function EVP_DigestUpdate
+     (ctx    : EVP_MD_CTX_Ptr;
+      d      : System.Address;
+      cnt    : Interfaces.C.size_t) return Interfaces.C.int
+     with Import, Convention => C, External_Name => "EVP_DigestUpdate";
+
+   function EVP_DigestFinal_ex
+     (ctx    : EVP_MD_CTX_Ptr;
+      md     : System.Address;
+      s      : access Interfaces.C.unsigned) return Interfaces.C.int
+     with Import, Convention => C, External_Name => "EVP_DigestFinal_ex";
+
 end Bindings.OpenSSL;

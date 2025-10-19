@@ -19,8 +19,15 @@ package SparkPass.Crypto.Argon2id is
      with
        Global  => null,
        Pre     => Password'Length > 0 and then
-                  Password'Length <= 128,  -- Reasonable maximum
-       Depends => (Output => (Password, Params), Success => (Password, Params)),
+                  Password'Length <= 128 and then  -- Reasonable maximum
+                  Params.Parallelism > 0 and then
+                  Params.Parallelism <= 255 and then
+                  Params.Iterations > 0 and then
+                  Params.Iterations <= 255 and then
+                  Params.Memory_Cost > 0 and then
+                  Params.Memory_Cost <= Interfaces.Unsigned_32 (Positive'Last),
+       Depends => (Output => (Password, Params),
+                   Success => null),  -- Always True (no error conditions in current impl)
        Post    => (if not Success then (for all I in Output'Range => Output (I) = 0));
 
    procedure Zeroize (Value : in out Key_Array)

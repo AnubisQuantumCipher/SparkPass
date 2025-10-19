@@ -21,6 +21,17 @@ package SparkPass.Config is
    Argon2_Parallelism : constant Interfaces.Unsigned_32 := 1;
    Argon2_Salt_Length : constant Positive := 32;
 
+   type Argon2_Verification_Preset is
+     (Test_Small,
+      Test_Medium,
+      Production);
+
+   --  Default proof preset stays on the medium model so GNATprove completes
+   --  quickly.  Builds can override this via gnatprove switches when running
+   --  production-scale proofs.
+   Argon2_Verification_Mode : constant Argon2_Verification_Preset :=
+     Test_Medium;
+
    Master_Key_Length : constant Positive := 32;
    Nonce_Length      : constant Positive := 12;
    Tag_Length        : constant Positive := 16;
@@ -33,6 +44,11 @@ package SparkPass.Config is
    MLDsa_Public_Key_Length  : constant Positive := 2592;
    MLDsa_Secret_Key_Length  : constant Positive := 4896;
    MLDsa_Signature_Length   : constant Positive := 4627;
+
+   --  Feature flag: Use pure SPARK ML-DSA-87 implementation (default: True)
+   --  When True:  Uses SparkPass.Crypto.MLDSA87 (pure SPARK, zero FFI)
+   --  When False: Uses Bindings.LibOQS (FFI wrapper for testing/comparison)
+   Use_Pure_SPARK_MLDSA : constant Boolean := True;
 
    -- Post-Quantum Cryptography (ML-KEM-1024, NIST FIPS 203)
    -- Note: Secret key sizes updated to match liboqs 0.14.0 actual implementation

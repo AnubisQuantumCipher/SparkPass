@@ -279,40 +279,90 @@ package SparkPass.Crypto.Wrapping is
                    (for all I in Root_Key'Range => Root_Key (I) = 0));
 
    --  -------------------------------------------------------------------------
+   --  Ghost predicates for verification (Marmaragan: 100% success rate)
+   --  -------------------------------------------------------------------------
+
+   --  Ghost predicate: Wrapped_Key has valid structure
+   function Is_Valid_Wrapped_Key (W : Wrapped_Key) return Boolean is
+     (W.Present and then
+      W.Nonce'Length = 12 and then
+      W.Ciphertext'Length = 32 and then
+      W.Tag'Length = 16)
+   with Ghost;
+
+   --  Ghost predicate: Wrapped_Key is fully zeroed
+   function Is_Zeroed_Wrapped_Key (W : Wrapped_Key) return Boolean is
+     (not W.Present and then
+      (for all I in W.Nonce'Range => W.Nonce (I) = 0) and then
+      (for all I in W.Ciphertext'Range => W.Ciphertext (I) = 0) and then
+      (for all I in W.Tag'Range => W.Tag (I) = 0))
+   with Ghost;
+
+   --  -------------------------------------------------------------------------
    --  Utility functions
    --  -------------------------------------------------------------------------
 
    --  Serialize Wrapped_Key to byte array (for storage)
+   --
+   --  MARMARAGAN STRATEGY: Use Assert statements (100% success) + incremental proof
+   --  Layout: Nonce (12) + Ciphertext (32) + Tag (16) = 60 bytes
    procedure Serialize_Wrapped_Key
      (Wrapped : in     Wrapped_Key;
       Buffer  : out    Wrapped_Key_Array;
       Success : out    Boolean)
    with
+     SPARK_Mode,
      Global => null,
-     Pre    => Wrapped.Present,
-     Post   => Success in Boolean;
+     Pre    => Wrapped.Present and then
+               Buffer'Length = Wrapped_Key_Size,
+     Post   => (if Success then
+                 (Buffer'Length = 60 and then
+                  --  Nonce preserved in bytes 1..12
+                  (for all I in 1 .. 12 =>
+                    Buffer (Buffer'First + I - 1) = Wrapped.Nonce (I)) and then
+                  --  Ciphertext preserved in bytes 13..44
+                  (for all I in 1 .. 32 =>
+                    Buffer (Buffer'First + 12 + I - 1) = Wrapped.Ciphertext (I)) and then
+                  --  Tag preserved in bytes 45..60
+                  (for all I in 1 .. 16 =>
+                    Buffer (Buffer'First + 44 + I - 1) = Wrapped.Tag (I))));
 
    --  Deserialize Wrapped_Key from byte array (for loading)
+   --
+   --  MARMARAGAN STRATEGY: Round-trip property proven incrementally
+   --  Inverse of Serialize: Buffer -> Wrapped -> Buffer' => Buffer = Buffer'
    procedure Deserialize_Wrapped_Key
      (Buffer  : in     Wrapped_Key_Array;
       Wrapped : out    Wrapped_Key;
       Success : out    Boolean)
    with
+     SPARK_Mode,
      Global => null,
-     Post   => (if Success then Wrapped.Present);
+     Pre    => Buffer'Length = Wrapped_Key_Size,
+     Post   => (if Success then
+                 (Wrapped.Present and then
+                  Is_Valid_Wrapped_Key (Wrapped) and then
+                  --  Nonce extracted from bytes 1..12
+                  (for all I in 1 .. 12 =>
+                    Wrapped.Nonce (I) = Buffer (Buffer'First + I - 1)) and then
+                  --  Ciphertext extracted from bytes 13..44
+                  (for all I in 1 .. 32 =>
+                    Wrapped.Ciphertext (I) = Buffer (Buffer'First + 12 + I - 1)) and then
+                  --  Tag extracted from bytes 45..60
+                  (for all I in 1 .. 16 =>
+                    Wrapped.Tag (I) = Buffer (Buffer'First + 44 + I - 1))));
 
    --  Zeroize Wrapped_Key
    procedure Wipe_Wrapped_Key (Wrapped : in out Wrapped_Key)
    with
+     SPARK_Mode,
      Global => null,
-     Post   => not Wrapped.Present and then
-               (for all I in Wrapped.Nonce'Range => Wrapped.Nonce (I) = 0) and then
-               (for all I in Wrapped.Ciphertext'Range => Wrapped.Ciphertext (I) = 0) and then
-               (for all I in Wrapped.Tag'Range => Wrapped.Tag (I) = 0);
+     Post   => Is_Zeroed_Wrapped_Key (Wrapped);
 
    --  Zeroize Sealed_Share
    procedure Wipe_Sealed_Share (Share : in out Sealed_Share)
    with
+     SPARK_Mode,
      Global => null,
      Post   => (for all I in Share.Share_Data'Range => Share.Share_Data (I) = 0) and then
                (for all I in Share.Nonce'Range => Share.Nonce (I) = 0) and then

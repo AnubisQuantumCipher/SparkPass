@@ -1,15 +1,17 @@
-pragma SPARK_Mode (Off);  -- Calls Wrapping module which uses FFI
+pragma SPARK_Mode (On);  -- Enable SPARK for data structure operations
 with SparkPass.Crypto.Zeroize;
 
 package body SparkPass.Vault.KeyArena is
 
    --  Helper: Write wrapped key to buffer
+   --  SPARK_Mode => Off because it calls Wrapping.Serialize_Wrapped_Key (FFI boundary)
    procedure Write_Wrapped_Key
      (Wrapped : in     SparkPass.Crypto.Wrapping.Wrapped_Key;
       Present : in     Boolean;
       Buffer  : in out Byte_Array;
       Offset  : in out Positive)
    with
+     SPARK_Mode => Off,
      Global => null,
      Pre    => Offset >= Buffer'First and then
                Offset + 60 <= Buffer'Last + 1
@@ -52,6 +54,7 @@ package body SparkPass.Vault.KeyArena is
    end Write_Wrapped_Key;
 
    --  Helper: Read wrapped key from buffer
+   --  SPARK_Mode => Off because it calls Wrapping.Deserialize_Wrapped_Key (FFI boundary)
    procedure Read_Wrapped_Key
      (Buffer  : in     Byte_Array;
       Offset  : in out Positive;
@@ -59,6 +62,7 @@ package body SparkPass.Vault.KeyArena is
       Wrapped : out    SparkPass.Crypto.Wrapping.Wrapped_Key;
       Success : out    Boolean)
    with
+     SPARK_Mode => Off,
      Global => null,
      Pre    => Offset >= Buffer'First and then
                Offset + 60 <= Buffer'Last + 1
@@ -107,6 +111,7 @@ package body SparkPass.Vault.KeyArena is
       Buffer      : out    Byte_Array;
       Actual_Size : out    Natural;
       Status      : out    Parse_Status)
+   with SPARK_Mode => Off  -- Calls Write_Wrapped_Key (FFI boundary)
    is
       Offset : Positive := Buffer'First;
    begin
@@ -176,6 +181,7 @@ package body SparkPass.Vault.KeyArena is
      (Buffer : in     Byte_Array;
       Arena  : out    Key_Arena;
       Status : out    Parse_Status)
+   with SPARK_Mode => Off  -- Calls Read_Wrapped_Key (FFI boundary)
    is
       Offset : Positive := Buffer'First;
       Magic_Buffer : String (1 .. 4) := "    ";
@@ -298,7 +304,9 @@ package body SparkPass.Vault.KeyArena is
       Status := Ok;
    end Deserialize;
 
-   function Is_Valid_Policy (Arena : Key_Arena) return Boolean is
+   function Is_Valid_Policy (Arena : Key_Arena) return Boolean
+   with SPARK_Mode => On  -- Pure predicate, fully verifiable
+   is
    begin
       --  Rule 1: Wrap A (passphrase) is always required
       if not Arena.Wrap_A_Present then
@@ -324,7 +332,9 @@ package body SparkPass.Vault.KeyArena is
       return True;
    end Is_Valid_Policy;
 
-   procedure Wipe_Arena (Arena : in out Key_Arena) is
+   procedure Wipe_Arena (Arena : in out Key_Arena)
+   with SPARK_Mode => Off  -- Calls Wrapping.Wipe_* (FFI boundary)
+   is
    begin
       Arena.Wrap_A_Present := False;
       SparkPass.Crypto.Wrapping.Wipe_Wrapped_Key (Arena.Wrap_A);

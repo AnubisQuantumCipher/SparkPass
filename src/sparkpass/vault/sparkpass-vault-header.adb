@@ -1,8 +1,9 @@
 pragma SPARK_Mode (Off);  -- Calls FFI-using crypto modules
+with Ada.Text_IO;
 with Interfaces; use type Interfaces.Unsigned_8; use type Interfaces.Unsigned_16; use type Interfaces.Unsigned_32; use type Interfaces.Unsigned_64;
 with SparkPass.Config;
 with SparkPass.Crypto.Argon2id;
-with SparkPass.Crypto.AES_GCM_SIV;
+with SparkPass.Crypto.ChaCha20Poly1305;
 with SparkPass.Crypto.HKDF;
 with SparkPass.Crypto.MLDSA;
 with SparkPass.Crypto.MLKEM;
@@ -45,6 +46,10 @@ package body SparkPass.Vault.Header is
          State.Argon2_Salt (Index) := Params.Salt (Index);
       end loop;
 
+      Ada.Text_IO.Put_Line ("[Header.Init] Starting Argon2id (m=" & Interfaces.Unsigned_32'Image (Params.Memory_Cost) &
+                           " KiB, t=" & Interfaces.Unsigned_32'Image (Params.Iterations) &
+                           ", p=" & Interfaces.Unsigned_32'Image (Params.Parallelism) & ")");
+
       declare
          type Profile is record
             Memory      : Interfaces.Unsigned_32;
@@ -68,12 +73,16 @@ package body SparkPass.Vault.Header is
             raise Program_Error with "Argon2id derive failed";
          end if;
       end;
+
+      Ada.Text_IO.Put_Line ("[Header.Init] Argon2id completed");
+
       Wrap_Key := Derived;
+
       SparkPass.Crypto.Random.Fill (Master);
       SparkPass.Crypto.Random.Fill (Chain);
 
       Fill_Nonce (State.Wrapped_Master_Nonce);
-      SparkPass.Crypto.AES_GCM_SIV.Seal
+      SparkPass.Crypto.ChaCha20Poly1305.Seal
         (Key        => Wrap_Key,
          Nonce      => State.Wrapped_Master_Nonce,
          Plaintext  => Master,
@@ -86,7 +95,7 @@ package body SparkPass.Vault.Header is
          Chain_Key_Bytes : constant Byte_Array := Chain;
          Chain_Info      : Byte_Array := SparkPass.Crypto.HKDF.Derive (Wrap_Key, State.Argon2_Salt, HKDF_Info, Chain'Length);
       begin
-         SparkPass.Crypto.AES_GCM_SIV.Seal
+         SparkPass.Crypto.ChaCha20Poly1305.Seal
            (Key        => Wrap_Key,
             Nonce      => State.Chain_Key_Nonce,
             Plaintext  => Chain_Key_Bytes,
@@ -96,10 +105,14 @@ package body SparkPass.Vault.Header is
          SparkPass.Crypto.Zeroize.Wipe (Chain_Info);
       end;
 
+      Ada.Text_IO.Put_Line ("[Header.Init] Starting ML-DSA KeyGen");
+
       declare
          Public : MLDsa_Public_Key_Array;
       begin
          SparkPass.Crypto.MLDSA.Keypair (Public, Signing);
+
+         Ada.Text_IO.Put_Line ("[Header.Init] ML-DSA KeyGen completed");
          State.MLDsa_Public_Key := Public;
          State.MLDsa_Secret_Key := Signing;
          State.Has_MLDsa_Secret := True;
@@ -107,7 +120,7 @@ package body SparkPass.Vault.Header is
       end;
 
       Fill_Nonce (State.MLDsa_Secret_Nonce);
-      SparkPass.Crypto.AES_GCM_SIV.Seal
+      SparkPass.Crypto.ChaCha20Poly1305.Seal
         (Key        => Wrap_Key,
          Nonce      => State.MLDsa_Secret_Nonce,
          Plaintext  => Signing,
@@ -115,11 +128,15 @@ package body SparkPass.Vault.Header is
          Ciphertext => State.MLDsa_Secret_Value,
          Tag        => State.MLDsa_Secret_Tag);
 
+      Ada.Text_IO.Put_Line ("[Header.Init] Starting ML-KEM KeyGen");
+
       declare
          Public    : MLKem_Public_Key_Array;
          Secret_SK : MLKem_Secret_Key_Array;
       begin
          SparkPass.Crypto.MLKEM.Keypair (Public, Secret_SK);
+
+         Ada.Text_IO.Put_Line ("[Header.Init] ML-KEM KeyGen completed");
          State.MLKem_Public_Key := Public;
          State.MLKem_Secret_Key := Secret_SK;
          State.Has_MLKem_Secret := True;
@@ -128,7 +145,7 @@ package body SparkPass.Vault.Header is
 
       --  Wrap ML-KEM secret key (encrypted with wrap key for storage)
       Fill_Nonce (State.MLKem_Secret_Nonce);
-      SparkPass.Crypto.AES_GCM_SIV.Seal
+      SparkPass.Crypto.ChaCha20Poly1305.Seal
         (Key        => Wrap_Key,
          Nonce      => State.MLKem_Secret_Nonce,
          Plaintext  => State.MLKem_Secret_Key,
@@ -138,16 +155,22 @@ package body SparkPass.Vault.Header is
 
       Refresh_Fingerprint (State);
 
+      Ada.Text_IO.Put_Line ("[Header.Init] Starting ML-DSA Sign");
+
       declare
          Signature : MLDsa_Signature_Array;
       begin
          SparkPass.Crypto.MLDSA.Sign (State.MLDsa_Secret_Key, State.Vault_Fingerprint, Signature);
+
+         Ada.Text_IO.Put_Line ("[Header.Init] ML-DSA Sign completed");
          State.Header_Signature := Signature;
          SparkPass.Crypto.Zeroize.Wipe (Signature);
       end;
 
       SparkPass.Crypto.Argon2id.Zeroize (Derived);
       SparkPass.Crypto.Zeroize.Wipe (Params.Salt);
+
+      Ada.Text_IO.Put_Line ("[Header.Init] COMPLETED successfully");
    end Initialize;
 
    procedure Bump
@@ -339,7 +362,7 @@ package body SparkPass.Vault.Header is
       if not Success then
          return False;
       end if;
-      SparkPass.Crypto.AES_GCM_SIV.Open
+      SparkPass.Crypto.ChaCha20Poly1305.Open
         (Key        => Derived,
          Nonce      => State.Wrapped_Master_Nonce,
          Ciphertext => State.Wrapped_Master_Key,

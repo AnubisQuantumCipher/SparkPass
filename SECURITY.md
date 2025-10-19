@@ -41,7 +41,7 @@ SparkPass is designed to resist the following attacks:
 
 #### 4. Vault Integrity Attacks
 - **Tampering**: Modify vault to inject malicious entries
-  - **Protection**: ML-DSA-87 signature over entire vault
+  - **Protection**: ML-DSA-87 signature over vault header fingerprint
   - **Detection**: Signature verification fails immediately
 - **Rollback**: Restore old version of vault
   - **Protection**: Vault fingerprint in header
@@ -88,6 +88,27 @@ SparkPass **cannot** protect against:
 - **Supply Chain**: Compromised hardware or compilers
 - **Mitigation**: Limited (consult legal counsel)
 
+#### 4. Metadata Leakage (Design Trade-off)
+- **Cleartext Entry Labels**: Entry labels (e.g., "github", "aws") are stored in plaintext
+  - **Leakage**: Attacker with vault file can see which services you have accounts for
+  - **Protection**: None - labels are intentionally cleartext for usability
+  - **Impact**: Reveals account metadata but NOT passwords, usernames, or secrets
+  - **Rationale**: Encrypted labels would require decrypting entire vault to search entries
+  - **Mitigation**: Use generic labels (e.g., "account1" instead of "mybank.com") if metadata privacy is critical
+
+**Why This Design?**
+SparkPass prioritizes usability and performance:
+1. **Fast Search**: `sparkpass get github` works instantly without unlocking vault
+2. **User Experience**: Users can see their entry list without entering password
+3. **CLI Workflow**: Tab completion and label search require readable labels
+
+**What This Means:**
+- Passwords and secrets: **FULLY PROTECTED** (ChaCha20-Poly1305 encrypted)
+- Entry labels: **VISIBLE** to anyone with vault file access
+- Trade-off: Convenience vs metadata privacy (user can choose generic labels)
+
+This is a **deliberate design decision**, not a vulnerability. Users who require metadata privacy should use generic labels.
+
 ### Assumptions
 
 SparkPass security relies on the following assumptions:
@@ -127,8 +148,8 @@ These properties are not just tested—they are **mathematically proven** using 
 - **Security**: 480 trillion years with 1000 GPUs (14-char alphanumeric password)
 
 #### Encryption
-- **Algorithm**: AES-256-GCM-SIV (NIST approved)
-- **Properties**: IND-CPA secure, nonce-misuse resistant
+- **Algorithm**: ChaCha20-Poly1305 (RFC 8439)
+- **Properties**: IND-CPA secure, authenticated encryption
 - **Key Size**: 256 bits (32 bytes)
 - **Nonce**: 96 bits (12 bytes), unique per entry
 - **Tag**: 128 bits (16 bytes) for authentication
@@ -136,15 +157,15 @@ These properties are not just tested—they are **mathematically proven** using 
 
 #### Post-Quantum Signatures
 - **Algorithm**: ML-DSA-87 (NIST FIPS 204, formerly Dilithium-5)
-- **Security Level**: NIST Level 5 (256-bit quantum security, 192-bit classical)
+- **Security Level**: NIST Level 5 security
 - **Public Key**: 2,592 bytes
-- **Secret Key**: 4,864 bytes (AES-encrypted in vault)
+- **Secret Key**: 4,896 bytes (ChaCha20-Poly1305 encrypted in vault)
 - **Signature**: 4,627 bytes
 - **Purpose**: Detect vault tampering, quantum-resistant
 
 #### Post-Quantum Key Encapsulation
 - **Algorithm**: ML-KEM-1024 (NIST FIPS 203, formerly Kyber-1024)
-- **Security Level**: NIST Level 5 (256-bit quantum security)
+- **Security Level**: NIST Level 5 security
 - **Public Key**: 1,568 bytes
 - **Ciphertext**: 1,568 bytes
 - **Shared Secret**: 32 bytes
@@ -239,9 +260,9 @@ Verdict: PROTECTED
 
 **Attack**: Modify vault file to inject malicious entry or change password
 ```
-Protection: ML-DSA-87 signature over entire vault
+Protection: ML-DSA-87 signature over vault header fingerprint
 Attack surface: Forge signature or break lattice problem
-Security level: NIST Level 5 (256-bit quantum security)
+Security level: NIST Level 5 security
 Known attacks: None practical (best attack: ~2^192 operations)
 Verdict: IMPOSSIBLE with current and near-future technology
 ```
@@ -347,9 +368,9 @@ Verdict: PROTECTED (2^384 operations required, impossible)
 **Crash Safety Mechanisms**:
 1. **Finalization Marker**: `"SPKv1:FINAL"` written at end
    - Detects incomplete writes (power loss during save)
-2. **ML-DSA-87 Signature**: Covers entire vault (header + entries)
-   - Detects any tampering or corruption
-3. **Fingerprint Check**: SHA-512 over header fields
+2. **ML-DSA-87 Signature**: Signs vault header fingerprint (HMAC-SHA512 of header fields)
+   - Detects any tampering or corruption of header cryptographic material
+3. **Fingerprint Check**: HMAC-SHA512 over header fields
    - Quick corruption detection before signature verification
 
 **Verdict**: **PASS** - All corruption scenarios detected
@@ -362,8 +383,8 @@ Verdict: PROTECTED (2^384 operations required, impossible)
 | KDF | PBKDF2 | PBKDF2 | Argon2 | **Argon2id** |
 | KDF Memory | <100 MB | <100 MB | 64 MB (default) | **1 GiB** |
 | KDF Time | ~100ms | ~100ms | ~200ms | **2.5s** |
-| Encryption | AES-256-GCM | AES-256-CBC | AES-256 | **AES-256-GCM-SIV** |
-| Nonce Misuse | Vulnerable | Vulnerable | Vulnerable | **Resistant** |
+| Encryption | AES-256-GCM | AES-256-CBC | AES-256 | **ChaCha20-Poly1305** |
+| Nonce Misuse | Vulnerable | Vulnerable | Vulnerable | **Vulnerable** |
 | **Post-Quantum** |
 | Quantum Resistance | ✗ | ✗ | ✗ | **[PASS]** |
 | PQ Signatures | ✗ | ✗ | ✗ | **[PASS] ML-DSA-87** |
@@ -479,7 +500,7 @@ We recognize security researchers who responsibly disclose vulnerabilities. Your
 
 ### Version 1.0 (Current)
 - [PASS] Argon2id 1 GiB memory-hard KDF
-- [PASS] AES-256-GCM-SIV encryption
+- [PASS] ChaCha20-Poly1305 authenticated encryption
 - [PASS] ML-KEM-1024 and ML-DSA-87 post-quantum crypto
 - [PASS] SPARK Platinum verification
 - [PASS] Forward secrecy with key ratcheting
@@ -506,7 +527,8 @@ We recognize security researchers who responsibly disclose vulnerabilities. Your
 - [NIST SP 800-185: HKDF](https://csrc.nist.gov/publications/detail/sp/800-185/final)
 
 ### Cryptographic Libraries
-- [libsodium](https://libsodium.gitbook.io/) - Argon2id, AES-256-GCM
+- [SPARKNaCl](https://github.com/rod-chapman/SPARKNaCl) - ChaCha20-Poly1305 AEAD (formally verified)
+- [libsodium](https://libsodium.gitbook.io/) - Argon2id password hashing
 - [Open Quantum Safe (liboqs)](https://openquantumsafe.org/) - ML-KEM, ML-DSA
 - [SPARK Ada](https://www.adacore.com/about-spark) - Formal verification
 
@@ -514,7 +536,7 @@ We recognize security researchers who responsibly disclose vulnerabilities. Your
 - [Argon2: The Password Hashing Competition](https://password-hashing.net/argon2-specs.pdf)
 - [CRYSTALS-Kyber (ML-KEM)](https://pq-crystals.org/kyber/data/kyber-specification-round3-20210804.pdf)
 - [CRYSTALS-Dilithium (ML-DSA)](https://pq-crystals.org/dilithium/data/dilithium-specification-round3-20210208.pdf)
-- [AES-GCM-SIV: Nonce Misuse-Resistant Authenticated Encryption](https://eprint.iacr.org/2017/168.pdf)
+- [RFC 8439: ChaCha20 and Poly1305](https://datatracker.ietf.org/doc/html/rfc8439)
 
 ---
 

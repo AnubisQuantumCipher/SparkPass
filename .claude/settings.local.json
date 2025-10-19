@@ -21,7 +21,19 @@
       "Bash(./test/test_timing_attacks:*)",
       "Read(//private/tmp/anubis-spark/**)",
       "Read(//tmp/anubis-spark/**)",
-      "Read(//tmp/anubis-spark/docs/**)"
+      "Read(//tmp/anubis-spark/docs/**)",
+      "Bash(alr build:*)",
+      "Bash(./bin/anubis_main:*)",
+      "Bash(if [ -f obj/gnatprove/gnatprove.out ])",
+      "Bash(then head -100 obj/gnatprove/gnatprove.out)",
+      "Bash(else echo \"No gnatprove.out found\")",
+      "Bash(fi)",
+      "Bash(alr exec:*)",
+      "Read(//Users/sicarii/Desktop/NIST Vectors/**)",
+      "Bash(xargs ls:*)",
+      "Bash(./test/run_nist_kat_validation.sh:*)",
+      "Bash(./test_mlkem_crypto_validation)",
+      "Read(//Users/sicarii/Desktop/**)"
     ],
     "deny": [],
     "ask": []

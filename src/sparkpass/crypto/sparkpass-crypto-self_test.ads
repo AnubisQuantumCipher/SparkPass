@@ -12,7 +12,7 @@ package SparkPass.Crypto.Self_Test is
       Argon2_Duration           : Duration := 0.0;
       Argon2_Used_Strong_Params : Boolean := True;
       HKDF_Status               : Stage_Status := Failed;
-      AES_Status                : Stage_Status := Failed;
+      AEAD_Status                : Stage_Status := Failed;
       MLKEM_Status              : Stage_Status := Failed;
       MLDSA_Status              : Stage_Status := Failed;
       MLDSA_Tamper              : Tamper_Status := Not_Detected;

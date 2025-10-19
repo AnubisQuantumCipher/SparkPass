@@ -87,6 +87,9 @@ package body SparkPass.Crypto.Nonce is
       --  Convert counter to big-endian byte array (8 bytes)
       --  Big-endian ensures lexicographic ordering matches numeric ordering
       --  (counter=1 < counter=2 in both representations)
+      --
+      --  PLATINUM PROOF: This encoding is identical to Counter_To_Bytes_Ghost
+      --  and therefore inherits its injectivity property.
       Counter_Bytes : constant Byte_Array (1 .. 8) :=
         (1 => U8 (Interfaces.Shift_Right (Counter, 56) and 16#FF#),
          2 => U8 (Interfaces.Shift_Right (Counter, 48) and 16#FF#),
@@ -97,14 +100,26 @@ package body SparkPass.Crypto.Nonce is
          7 => U8 (Interfaces.Shift_Right (Counter, 8) and 16#FF#),
          8 => U8 (Counter and 16#FF#));
 
+      --  PLATINUM ASSERTION: Prove equivalence to ghost function
+      pragma Assert (Counter_Bytes = Counter_To_Bytes_Ghost (Counter));
+
       --  Get domain separator as byte array
       Domain_Bytes : constant Byte_Array := Domain_To_Bytes (Domain);
 
       --  Construct HKDF input keying material (IKM):
       --  IKM = Counter (8) || Entry_ID (16) || Domain (10..20)
       --  Maximum length: 8 + 16 + 20 = 44 bytes
+      --
+      --  **PROOF STRATEGY**: IKM is initialized piecewise in three loops below:
+      --    1. Bytes 1-8: Counter (loop over Counter_Bytes)
+      --    2. Bytes 9-24: Entry_ID (loop over Entry_ID)
+      --    3. Bytes 25-44: Domain (loop over Domain_Bytes)
+      --
+      --  Relaxed_Initialization tells SPARK to check initialization at use site
+      --  (HKDF.Derive call) rather than declaration. This allows piecewise init.
       IKM_Length : constant Positive := 8 + Entry_Id_Size + Domain_Bytes'Length;
-      IKM        : Byte_Array (1 .. IKM_Length);
+      IKM        : Byte_Array (1 .. IKM_Length)
+        with Relaxed_Initialization;
 
       --  HKDF info parameter (empty for nonce derivation)
       --  We encode all context in IKM and Salt, following RFC 5869 guidance
@@ -134,6 +149,8 @@ package body SparkPass.Crypto.Nonce is
       for I in Counter_Bytes'Range loop
          pragma Loop_Invariant (I in Counter_Bytes'Range);
          pragma Loop_Invariant (I in IKM'Range);
+         --  PROOF: Bytes 1..I-1 initialized in previous iterations
+         pragma Loop_Invariant (for all K in 1 .. I - 1 => IKM(K)'Initialized);
          IKM (I) := Counter_Bytes (I);
       end loop;
 
@@ -142,6 +159,10 @@ package body SparkPass.Crypto.Nonce is
          pragma Loop_Invariant (I in Entry_ID'Range);
          pragma Loop_Invariant (I in 1 .. Entry_Id_Size);
          pragma Loop_Invariant (8 + I in IKM'Range);
+         --  PROOF: Bytes 1..8 initialized from Counter loop
+         pragma Loop_Invariant (for all K in 1 .. 8 => IKM(K)'Initialized);
+         --  PROOF: Bytes 9..8+I-1 initialized in previous iterations
+         pragma Loop_Invariant (for all K in 9 .. 8 + I - 1 => IKM(K)'Initialized);
          IKM (8 + I) := Entry_ID (I);
       end loop;
 
@@ -150,6 +171,10 @@ package body SparkPass.Crypto.Nonce is
          pragma Loop_Invariant (I in Domain_Bytes'Range);
          pragma Loop_Invariant (I >= 1);
          pragma Loop_Invariant (24 + I in IKM'Range);
+         --  PROOF: Bytes 1..24 initialized from Counter+Entry_ID loops
+         pragma Loop_Invariant (for all K in 1 .. 24 => IKM(K)'Initialized);
+         --  PROOF: Bytes 25..24+I-1 initialized in previous iterations
+         pragma Loop_Invariant (for all K in 25 .. 24 + I - 1 => IKM(K)'Initialized);
          IKM (24 + I) := Domain_Bytes (I);
       end loop;
 
@@ -169,6 +194,10 @@ package body SparkPass.Crypto.Nonce is
       --    probability (< 2⁻⁹⁶ by birthday paradox)
       --  - Combined with 128-bit Entry_ID uniqueness, total collision
       --    probability < 2⁻²²⁴ (astronomically negligible)
+
+      --  PROOF: All IKM bytes are now fully initialized
+      --  Relaxed_Initialization requires explicit proof before use
+      pragma Assert (for all K in IKM'Range => IKM(K)'Initialized);
 
       declare
          HKDF_Output : constant Byte_Array :=

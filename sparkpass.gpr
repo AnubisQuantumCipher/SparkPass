@@ -1,3 +1,5 @@
+with "sparknacl";
+
 project SparkPass is
    for Languages use ("Ada", "C");
    for Source_Dirs use (
@@ -9,27 +11,28 @@ project SparkPass is
       "src/sparkpass/cli",
       "src/sparkpass/crypto",
       "src/sparkpass/vault",
-      "src/sparkpass/platform");
+      "src/sparkpass/platform",
+      "src/sparkpass/support");
    for Object_Dir use "obj";
    for Exec_Dir   use "bin";
    for Main use ("sparkpass_main.adb");
 
    package Compiler is
       for Driver ("C") use "/usr/bin/clang";
-      for Default_Switches ("Ada") use ("-O2", "-gnatn", "-mmacosx-version-min=26.0");
-      for Default_Switches ("C") use ("-O2", "-mmacosx-version-min=26.0");
+      for Driver ("C++") use "/usr/bin/clang++";
+      for Default_Switches ("Ada") use ("-O2", "-gnatn", "-gnatw.T", "-mmacosx-version-min=26.0");
+      for Default_Switches ("C") use ("-O2", "-mmacosx-version-min=26.0", "-Wno-deprecated-declarations", "-Wno-unused-command-line-argument");
+      for Default_Switches ("C++") use ("-O2", "-mmacosx-version-min=26.0", "-x", "objective-c");
    end Compiler;
 
    package Linker is
       --  Library paths configured via pkg-config (with fallback to Homebrew ARM64 defaults)
-      --  Set environment variables LIBOQS_LDFLAGS, OPENSSL_LDFLAGS, LIBSODIUM_LDFLAGS to override
+      --  Set environment variable OPENSSL_LDFLAGS to override
       for Default_Switches ("Ada") use (
-         external("LIBOQS_LDFLAGS", "-L/opt/homebrew/Cellar/liboqs/0.14.0/lib"),
-         "-loqs",
+         "obj/lacontext_helpers.o",
          external("OPENSSL_LDFLAGS", "-L/opt/homebrew/opt/openssl@3/lib"),
          "-lssl",
          "-lcrypto",
-         external("LIBSODIUM_LDFLAGS", "-L/opt/homebrew/lib"),
          "-lsodium",
          "-framework",
          "CoreFoundation",

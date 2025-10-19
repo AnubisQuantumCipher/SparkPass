@@ -7,11 +7,9 @@ package SparkPass.Crypto.HKDF is
    subtype Hash64_Array is Byte_Array (1 .. Hash_Output_Length);
 
    --  HMAC-SHA512 function for general use
-   --  Computes HMAC-SHA512 using libsodium's crypto_auth_hmacsha512
-   --  Key can be any length (will be hashed if > 128 bytes internally by libsodium)
+   --  Computes HMAC-SHA512 using pure SPARK implementation (RFC 2104)
+   --  Key can be any length (will be hashed if > 136 bytes per SHA3-512 block size)
    --  Data can be any length
-   pragma Warnings (Off, "postcondition does not check the outcome");
-   pragma Warnings (Off, "postcondition does not mention function result");
    function HMAC (Key : Byte_Array; Data : Byte_Array) return Hash64_Array
      with
        Global => null,
@@ -19,8 +17,6 @@ package SparkPass.Crypto.HKDF is
                  Key'Length <= 65536 and then
                  Data'Length <= 1048576,  -- 1 MB max data size
        Post   => HMAC'Result'Length = Hash_Output_Length;
-   pragma Warnings (On, "postcondition does not check the outcome");
-   pragma Warnings (On, "postcondition does not mention function result");
 
    --  HKDF-SHA384 Key Derivation Function (RFC 5869)
    --  Derives cryptographic key material from input keying material (IKM)

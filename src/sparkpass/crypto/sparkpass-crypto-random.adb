@@ -1,37 +1,44 @@
-pragma SPARK_Mode (Off);  -- Uses FFI with libsodium and global state for initialization
-with Interfaces.C;
-with System;
-with Bindings.Libsodium;
+pragma SPARK_Mode (Off);  -- Uses Ada.Streams.Stream_IO (not in SPARK subset)
+with Ada.Streams.Stream_IO;
 
 package body SparkPass.Crypto.Random is
 
-   Initialized : Boolean := False;
-
-   function Ensure_Initialized return Boolean is
-      use Interfaces.C;
-   begin
-      if not Initialized then
-         if Bindings.Libsodium.Sodium_Init < 0 then
-            return False;
-         end if;
-         Initialized := True;
-      end if;
-      return True;
-   end Ensure_Initialized;
-
    procedure Fill (Buffer : in out Byte_Array) is
+      use Ada.Streams;
+      use Ada.Streams.Stream_IO;
+
+      F : File_Type;
+      Last : Stream_Element_Offset;
+
+      --  Stream_Element_Array for reading from /dev/urandom
+      --  We use 1-based indexing to match Buffer
+      SEA : Stream_Element_Array (1 .. Stream_Element_Offset (Buffer'Length));
    begin
       if Buffer'Length = 0 then
          return;
       end if;
 
-      if not Ensure_Initialized then
-         raise Program_Error with "libsodium initialization failed";
+      --  Read from /dev/urandom (POSIX cryptographic random source)
+      --  This is non-blocking and suitable for cryptographic use
+      Open (F, In_File, "/dev/urandom");
+
+      Read (F, SEA, Last);
+
+      if Last /= SEA'Last then
+         Close (F);
+         raise Program_Error with
+            "/dev/urandom read incomplete: expected " &
+            Stream_Element_Offset'Image (SEA'Length) &
+            " bytes, got " & Stream_Element_Offset'Image (Last);
       end if;
 
-      Bindings.Libsodium.Randombytes_Buf
-        (Buffer (Buffer'First)'Address,
-         Interfaces.C.size_t (Buffer'Length));
+      Close (F);
+
+      --  Copy the random bytes to the output buffer
+      --  Stream_Element and U8 are both mod 256, so this is safe
+      for I in Buffer'Range loop
+         Buffer (I) := U8 (SEA (Stream_Element_Offset (I - Buffer'First + 1)));
+      end loop;
    end Fill;
 
 end SparkPass.Crypto.Random;

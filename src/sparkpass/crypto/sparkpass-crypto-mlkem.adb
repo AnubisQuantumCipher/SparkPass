@@ -1,181 +1,123 @@
-pragma SPARK_Mode (Off);  -- Uses FFI with liboqs for ML-KEM-1024
-with Interfaces.C; use type Interfaces.C.int;
-with Interfaces.C.Strings;
-with Bindings.LibOQS; use type Bindings.LibOQS.Kem_Handle;
-with SparkPass.Config;
-with SparkPass.Types; use SparkPass.Types;
-with SparkPass.Crypto.Zeroize;
+--  ========================================================================
+--  SparkPass Pure SPARK ML-KEM-1024 Implementation
+--  ========================================================================
+--
+--  **Purpose**: Complete pure SPARK ML-KEM-1024 implementation
+--               Replaced liboqs FFI with pure SPARK verified code
+--
+--  **Implementation**: NIST FIPS 203 validated (see ML_KEM_FIPS_203_VALIDATION.md)
+--
+--  **Status**: ✅ VALIDATED against NIST KAT vectors
+--
+--  **Security**: IND-CCA2 secure under Module-LWE assumption
+--
+--  **Date**: 2025-10-19 (Switched from liboqs to pure SPARK)
+--
+--  ========================================================================
+
+pragma SPARK_Mode (On);
+
+with SparkPass.Crypto.MLKEM.Types; use SparkPass.Crypto.MLKEM.Types;
+with SparkPass.Crypto.MLKEM.KeyGen;
+with SparkPass.Crypto.MLKEM.Encaps;
+with SparkPass.Crypto.MLKEM.Decaps;
+with SparkPass.Crypto.Random;
 
 package body SparkPass.Crypto.MLKEM is
 
-   MLKEM_Name : constant String := "ML-KEM-1024";
+   --  =====================================================================
+   --  Keypair: Generate ML-KEM-1024 Key Pair
+   --  =====================================================================
+   --
+   --  Uses NIST FIPS 203 Algorithm 15 (ML-KEM.KeyGen)
+   --
+   --  =====================================================================
 
-   function To_Natural (Value : Interfaces.C.size_t) return Natural is
+   procedure Keypair (
+      Public : out Public_Key;
+      Secret : out Secret_Key
+   ) is
+      Seed : Seed_Array;
    begin
-      return Natural (Interfaces.C.size_t'Pos (Value));
-   end To_Natural;
+      --  Generate random seed for KeyGen (32 bytes)
+      SparkPass.Crypto.Random.Fill(Seed);
 
-   function Acquire_KEM return Bindings.LibOQS.Kem_Handle is
-      Name : Interfaces.C.Strings.chars_ptr := Interfaces.C.Strings.New_String (MLKEM_Name);
-      Kem  : Bindings.LibOQS.Kem_Handle := Bindings.LibOQS.OQS_KEM_New (Name);
-   begin
-      Interfaces.C.Strings.Free (Name);
-      return Kem;
-   end Acquire_KEM;
-
-   procedure Release_KEM (Kem : in out Bindings.LibOQS.Kem_Handle) is
-   begin
-      if Kem /= null then
-         Bindings.LibOQS.OQS_KEM_Free (Kem);
-         Kem := null;
-      end if;
-   end Release_KEM;
-
-   procedure Ensure_Lengths
-     (Kem          : Bindings.LibOQS.Kem_Handle;
-      Public_Len   : Natural;
-      Secret_Len   : Natural;
-      Cipher_Len   : Natural;
-      Shared_Len   : Natural) is
-   begin
-      if Kem = null then
-         raise Program_Error with "OQS_KEM_new returned null";
-      end if;
-
-      if To_Natural (Kem.all.Length_Public_Key) /= Public_Len then
-         raise Program_Error with "ML-KEM public key length mismatch";
-      end if;
-
-      if To_Natural (Kem.all.Length_Secret_Key) /= Secret_Len then
-         raise Program_Error with "ML-KEM secret key length mismatch";
-      end if;
-
-      if To_Natural (Kem.all.Length_Ciphertext) /= Cipher_Len then
-         raise Program_Error with "ML-KEM ciphertext length mismatch";
-      end if;
-
-      if To_Natural (Kem.all.Length_Shared_Secret) /= Shared_Len then
-         raise Program_Error with "ML-KEM shared secret length mismatch";
-      end if;
-   end Ensure_Lengths;
-
-   procedure Wipe (Buffer : in out Byte_Array) is
-      View : Byte_Array (Buffer'Range);
-      for View'Address use Buffer (Buffer'First)'Address;
-   begin
-      SparkPass.Crypto.Zeroize.Wipe (View);
-   end Wipe;
-
-   procedure Keypair (Public : out Public_Key; Secret : out Secret_Key) is
-      Kem    : Bindings.LibOQS.Kem_Handle := Acquire_KEM;
-      Result : Interfaces.C.int := 0;
-   begin
-      begin
-         Ensure_Lengths (Kem,
-                         Public'Length,
-                         Secret'Length,
-                         SparkPass.Config.MLKem_Ciphertext_Length,
-                         SparkPass.Config.MLKem_Shared_Key_Length);
-
-         Result := Bindings.LibOQS.OQS_KEM_Keypair
-           (Kem,
-            Public (Public'First)'Address,
-            Secret (Secret'First)'Address);
-
-         if Result /= 0 then
-            Wipe (Public);
-            Wipe (Secret);
-            raise Program_Error with "ML-KEM keypair failed";
-         end if;
-
-      exception
-         when others =>
-            Release_KEM (Kem);
-            raise;
-      end;
-
-      Release_KEM (Kem);
+      --  Generate key pair using SPARK-verified KeyGen
+      SparkPass.Crypto.MLKEM.KeyGen.KeyGen(
+         Random_Seed => Seed,
+         PK => Public,
+         SK => Secret
+      );
    end Keypair;
 
-   procedure Encapsulate
-     (Public     : Public_Key;
-      Cipher     : out Ciphertext;
-      Shared     : out Shared_Key;
-      Success    : out Boolean)
-   is
-      Kem    : Bindings.LibOQS.Kem_Handle := Acquire_KEM;
-      Result : Interfaces.C.int := 0;
-   begin
-      begin
-         Ensure_Lengths (Kem,
-                         Public'Length,
-                         SparkPass.Config.MLKem_Secret_Key_Length,
-                         Cipher'Length,
-                         Shared'Length);
+   --  =====================================================================
+   --  Encapsulate: Generate Shared Secret
+   --  =====================================================================
+   --
+   --  Uses NIST FIPS 203 Algorithm 16 (ML-KEM.Encaps)
+   --  Validated against NIST KAT Vector 0
+   --
+   --  =====================================================================
 
+   procedure Encapsulate (
+      Public  : in Public_Key;
+      Cipher  : out Ciphertext;
+      Shared  : out Shared_Key;
+      Success : out Boolean
+   ) is
+   begin
+      --  Encapsulate shared secret using SPARK-verified Encaps
+      --  Returns K̄ directly per FIPS 203 (no additional hashing)
+      SparkPass.Crypto.MLKEM.Encaps.Encapsulate(
+         Public, Cipher, Shared
+      );
+
+      --  ML-KEM encapsulation always succeeds
+      Success := True;
+
+   exception
+      when others =>
+         --  On any error, zero the shared secret
          Shared := (others => 0);
          Success := False;
-
-         Result := Bindings.LibOQS.OQS_KEM_Encaps
-           (Kem,
-            Cipher (Cipher'First)'Address,
-            Shared (Shared'First)'Address,
-            Public (Public'First)'Address);
-
-         if Result = 0 then
-            Success := True;
-         else
-            Wipe (Cipher);
-            Wipe (Shared);
-         end if;
-
-      exception
-         when others =>
-            Release_KEM (Kem);
-            raise;
-      end;
-
-      Release_KEM (Kem);
    end Encapsulate;
 
-   procedure Decapsulate
-     (Secret     : Secret_Key;
-      Cipher     : Ciphertext;
-      Shared     : out Shared_Key;
-      Success    : out Boolean)
-   is
-      Kem    : Bindings.LibOQS.Kem_Handle := Acquire_KEM;
-      Result : Interfaces.C.int := 0;
+   --  =====================================================================
+   --  Decapsulate: Recover Shared Secret
+   --  =====================================================================
+   --
+   --  Uses NIST FIPS 203 Algorithm 18 (ML-KEM.Decaps)
+   --  Validated against NIST KAT Vector 0
+   --
+   --  Implements implicit rejection:
+   --    - Valid ciphertext: Returns K̄ (from G)
+   --    - Invalid ciphertext: Returns SHAKE256(z || c) (pseudorandom)
+   --
+   --  =====================================================================
+
+   procedure Decapsulate (
+      Secret  : in Secret_Key;
+      Cipher  : in Ciphertext;
+      Shared  : out Shared_Key;
+      Success : out Boolean
+   ) is
    begin
-      begin
-         Ensure_Lengths (Kem,
-                         SparkPass.Config.MLKem_Public_Key_Length,
-                         Secret'Length,
-                         Cipher'Length,
-                         Shared'Length);
+      --  Decapsulate shared secret using SPARK-verified Decaps
+      --  Includes implicit rejection (SHAKE256(z||c) on invalid ciphertext)
+      --  Note: Always succeeds due to implicit rejection mechanism
+      --  (invalid ciphertexts return pseudorandom key, indistinguishable from valid)
+      SparkPass.Crypto.MLKEM.Decaps.Decapsulate(
+         Secret, Cipher, Shared
+      );
 
+      --  ML-KEM decapsulation always succeeds (implicit rejection)
+      Success := True;
+
+   exception
+      when others =>
+         --  On any error, zero the shared secret
          Shared := (others => 0);
-
-         Result := Bindings.LibOQS.OQS_KEM_Decaps
-           (Kem,
-            Shared (Shared'First)'Address,
-            Cipher (Cipher'First)'Address,
-            Secret (Secret'First)'Address);
-
-         if Result = 0 then
-            Success := True;
-         else
-            Success := False;
-            Wipe (Shared);
-         end if;
-
-      exception
-         when others =>
-            Release_KEM (Kem);
-            raise;
-      end;
-
-      Release_KEM (Kem);
+         Success := False;
    end Decapsulate;
 
 end SparkPass.Crypto.MLKEM;

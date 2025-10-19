@@ -1,7 +1,12 @@
-pragma SPARK_Mode (Off);  -- Calls FFI-using modules (AES_GCM_SIV, Argon2id, Random)
-with SparkPass.Crypto.AES_GCM_SIV;
+pragma SPARK_Mode (Off);  -- Uses ChaCha20Poly1305 (pure SPARK), Argon2id (pure SPARK), Random (pure Ada)
+--  Note: All cryptographic operations are now FFI-free:
+--    - ChaCha20Poly1305: SPARKNaCl (Rod Chapman's verified implementation)
+--    - Argon2id: Pure SPARK (RFC 9106 validated)
+--    - Random: Pure Ada (/dev/urandom via Ada.Streams)
+with SparkPass.Crypto.ChaCha20Poly1305;
 with SparkPass.Crypto.Random;
 with SparkPass.Crypto.Zeroize;
+with SparkPass.Crypto.Wrapping.Pure;
 
 package body SparkPass.Crypto.Wrapping is
 
@@ -56,8 +61,8 @@ package body SparkPass.Crypto.Wrapping is
          SparkPass.Crypto.Zeroize.Wipe (Random_Block);
       end;
 
-      --  Seal with AES-256-GCM-SIV
-      SparkPass.Crypto.AES_GCM_SIV.Seal
+      --  Seal with ChaCha20-Poly1305 (RFC 8439)
+      SparkPass.Crypto.ChaCha20Poly1305.Seal
         (Key        => KEK,
          Nonce      => Nonce,
          Plaintext  => Plaintext,
@@ -68,7 +73,7 @@ package body SparkPass.Crypto.Wrapping is
       Success := True;
    end Seal_Data;
 
-   --  Open data with AES-256-GCM-SIV
+   --  Open data with ChaCha20-Poly1305 (RFC 8439)
    procedure Open_Data
      (KEK        : in     Key_Array;
       Nonce      : in     Nonce_Array;
@@ -85,7 +90,7 @@ package body SparkPass.Crypto.Wrapping is
    is
       AAD : constant Byte_Array (1 .. 0) := (others => 0);  -- Empty AAD
    begin
-      SparkPass.Crypto.AES_GCM_SIV.Open
+      SparkPass.Crypto.ChaCha20Poly1305.Open
         (Key        => KEK,
          Nonce      => Nonce,
          Ciphertext => Ciphertext,
@@ -467,32 +472,9 @@ package body SparkPass.Crypto.Wrapping is
       Buffer  : out    Wrapped_Key_Array;
       Success : out    Boolean)
    is
-      Offset : Positive := Buffer'First;
    begin
-      Success := False;
-
-      if not Wrapped.Present then
-         Buffer := (others => 0);
-         return;
-      end if;
-
-      --  Layout: Nonce (12) + Ciphertext (32) + Tag (16) = 60 bytes
-      for I in Wrapped.Nonce'Range loop
-         Buffer (Offset) := Wrapped.Nonce (I);
-         Offset := Offset + 1;
-      end loop;
-
-      for I in Wrapped.Ciphertext'Range loop
-         Buffer (Offset) := Wrapped.Ciphertext (I);
-         Offset := Offset + 1;
-      end loop;
-
-      for I in Wrapped.Tag'Range loop
-         Buffer (Offset) := Wrapped.Tag (I);
-         Offset := Offset + 1;
-      end loop;
-
-      Success := True;
+      --  Delegate to SPARK-verified pure implementation
+      Pure.Serialize_Wrapped_Key_Pure (Wrapped, Buffer, Success);
    end Serialize_Wrapped_Key;
 
    procedure Deserialize_Wrapped_Key
@@ -500,44 +482,21 @@ package body SparkPass.Crypto.Wrapping is
       Wrapped : out    Wrapped_Key;
       Success : out    Boolean)
    is
-      Offset : Positive := Buffer'First;
    begin
-      Wrapped.Present := False;
-      Success := False;
-
-      --  Layout: Nonce (12) + Ciphertext (32) + Tag (16) = 60 bytes
-      for I in Wrapped.Nonce'Range loop
-         Wrapped.Nonce (I) := Buffer (Offset);
-         Offset := Offset + 1;
-      end loop;
-
-      for I in Wrapped.Ciphertext'Range loop
-         Wrapped.Ciphertext (I) := Buffer (Offset);
-         Offset := Offset + 1;
-      end loop;
-
-      for I in Wrapped.Tag'Range loop
-         Wrapped.Tag (I) := Buffer (Offset);
-         Offset := Offset + 1;
-      end loop;
-
-      Wrapped.Present := True;
-      Success := True;
+      --  Delegate to SPARK-verified pure implementation
+      Pure.Deserialize_Wrapped_Key_Pure (Buffer, Wrapped, Success);
    end Deserialize_Wrapped_Key;
 
    procedure Wipe_Wrapped_Key (Wrapped : in out Wrapped_Key) is
    begin
-      Wrapped.Present := False;
-      SparkPass.Crypto.Zeroize.Wipe (Wrapped.Nonce);
-      SparkPass.Crypto.Zeroize.Wipe_Key (Wrapped.Ciphertext);
-      SparkPass.Crypto.Zeroize.Wipe_Tag (Wrapped.Tag);
+      --  Delegate to SPARK-verified pure implementation
+      Pure.Wipe_Wrapped_Key_Pure (Wrapped);
    end Wipe_Wrapped_Key;
 
    procedure Wipe_Sealed_Share (Share : in out Sealed_Share) is
    begin
-      SparkPass.Crypto.Shamir.Wipe_Share (Share.Share_Data);
-      SparkPass.Crypto.Zeroize.Wipe (Share.Nonce);
-      SparkPass.Crypto.Zeroize.Wipe_Tag (Share.Tag);
+      --  Delegate to SPARK-verified pure implementation
+      Pure.Wipe_Sealed_Share_Pure (Share);
    end Wipe_Sealed_Share;
 
 end SparkPass.Crypto.Wrapping;

@@ -4,7 +4,7 @@ with Ada.Streams.Stream_IO;
 with SparkPass.Config;
 with SparkPass.Types; use SparkPass.Types;
 with SparkPass.Crypto.Argon2id;
-with SparkPass.Crypto.AES_GCM_SIV;
+with SparkPass.Crypto.ChaCha20Poly1305;
 with SparkPass.Crypto.HKDF;
 with SparkPass.Crypto.MLKEM;
 with SparkPass.Crypto.MLDSA;
@@ -101,7 +101,7 @@ package body SparkPass.Vault is
         SparkPass.Crypto.HKDF.Derive (Wrap_View, State.Header.Argon2_Salt, HKDF_Chain_Info, State.Chain_Key'Length);
    begin
       SparkPass.Crypto.Random.Fill (State.Header.Wrapped_Master_Nonce);
-      SparkPass.Crypto.AES_GCM_SIV.Seal
+      SparkPass.Crypto.ChaCha20Poly1305.Seal
         (Key        => State.Wrap_Key,
          Nonce      => State.Header.Wrapped_Master_Nonce,
          Plaintext  => State.Master_Key,
@@ -110,7 +110,7 @@ package body SparkPass.Vault is
          Tag        => State.Header.Wrapped_Master_Tag);
 
       SparkPass.Crypto.Random.Fill (State.Header.Chain_Key_Nonce);
-     SparkPass.Crypto.AES_GCM_SIV.Seal
+     SparkPass.Crypto.ChaCha20Poly1305.Seal
        (Key        => State.Wrap_Key,
         Nonce      => State.Header.Chain_Key_Nonce,
         Plaintext  => Chain_Key_Copy,
@@ -119,7 +119,7 @@ package body SparkPass.Vault is
         Tag        => State.Header.Chain_Key_Tag);
 
      SparkPass.Crypto.Random.Fill (State.Header.MLDsa_Secret_Nonce);
-     SparkPass.Crypto.AES_GCM_SIV.Seal
+     SparkPass.Crypto.ChaCha20Poly1305.Seal
        (Key        => State.Wrap_Key,
         Nonce      => State.Header.MLDsa_Secret_Nonce,
         Plaintext  => Secret_View,
@@ -130,7 +130,7 @@ package body SparkPass.Vault is
      --  Wrap ML-KEM secret key (if present)
      if State.Header.Has_MLKem_Secret then
         SparkPass.Crypto.Random.Fill (State.Header.MLKem_Secret_Nonce);
-        SparkPass.Crypto.AES_GCM_SIV.Seal
+        SparkPass.Crypto.ChaCha20Poly1305.Seal
           (Key        => State.Wrap_Key,
            Nonce      => State.Header.MLKem_Secret_Nonce,
            Plaintext  => MLKem_Secret_View,
@@ -435,7 +435,7 @@ package body SparkPass.Vault is
          return;
       end if;
 
-      SparkPass.Crypto.AES_GCM_SIV.Open
+      SparkPass.Crypto.ChaCha20Poly1305.Open
         (Key        => Wrap_Key,
          Nonce      => Header.Wrapped_Master_Nonce,
          Ciphertext => Header.Wrapped_Master_Key,
@@ -455,7 +455,7 @@ package body SparkPass.Vault is
          Derived_Info : SparkPass.Types.Byte_Array :=
            SparkPass.Crypto.HKDF.Derive (Wrap_View, Header.Argon2_Salt, HKDF_Chain_Info, Chain'Length);
       begin
-         SparkPass.Crypto.AES_GCM_SIV.Open
+         SparkPass.Crypto.ChaCha20Poly1305.Open
             (Key        => Wrap_Key,
              Nonce      => Header.Chain_Key_Nonce,
              Ciphertext => Header.Chain_Key_Value,
@@ -474,7 +474,7 @@ package body SparkPass.Vault is
          return;
       end if;
 
-      SparkPass.Crypto.AES_GCM_SIV.Open
+      SparkPass.Crypto.ChaCha20Poly1305.Open
         (Key        => Wrap_Key,
          Nonce      => Header.MLDsa_Secret_Nonce,
          Ciphertext => Header.MLDsa_Secret_Value,
@@ -492,7 +492,7 @@ package body SparkPass.Vault is
 
       --  Unwrap ML-KEM secret key (if present in header)
       if Header.Has_MLKem_Secret then
-         SparkPass.Crypto.AES_GCM_SIV.Open
+         SparkPass.Crypto.ChaCha20Poly1305.Open
            (Key        => Wrap_Key,
             Nonce      => Header.MLKem_Secret_Nonce,
             Ciphertext => Header.MLKem_Secret_Value,
@@ -664,7 +664,7 @@ package body SparkPass.Vault is
 
       --  NOTE: Skipping Argon2id password derivation - using provided wrap_key directly
 
-      SparkPass.Crypto.AES_GCM_SIV.Open
+      SparkPass.Crypto.ChaCha20Poly1305.Open
         (Key        => Wrap_Key,
          Nonce      => Header.Wrapped_Master_Nonce,
          Ciphertext => Header.Wrapped_Master_Key,
@@ -684,7 +684,7 @@ package body SparkPass.Vault is
          Derived_Info : SparkPass.Types.Byte_Array :=
            SparkPass.Crypto.HKDF.Derive (Wrap_View, Header.Argon2_Salt, HKDF_Chain_Info, Chain'Length);
       begin
-         SparkPass.Crypto.AES_GCM_SIV.Open
+         SparkPass.Crypto.ChaCha20Poly1305.Open
             (Key        => Wrap_Key,
              Nonce      => Header.Chain_Key_Nonce,
              Ciphertext => Header.Chain_Key_Value,
@@ -703,7 +703,7 @@ package body SparkPass.Vault is
          return;
       end if;
 
-      SparkPass.Crypto.AES_GCM_SIV.Open
+      SparkPass.Crypto.ChaCha20Poly1305.Open
         (Key        => Wrap_Key,
          Nonce      => Header.MLDsa_Secret_Nonce,
          Ciphertext => Header.MLDsa_Secret_Value,
@@ -721,7 +721,7 @@ package body SparkPass.Vault is
 
       --  Unwrap ML-KEM secret key (if present in header)
       if Header.Has_MLKem_Secret then
-         SparkPass.Crypto.AES_GCM_SIV.Open
+         SparkPass.Crypto.ChaCha20Poly1305.Open
            (Key        => Wrap_Key,
             Nonce      => Header.MLKem_Secret_Nonce,
             Ciphertext => Header.MLKem_Secret_Value,
@@ -854,7 +854,7 @@ package body SparkPass.Vault is
          for Index in Label'Range loop
             AAD (AAD'First + (Index - Label'First)) := Label (Index);
          end loop;
-         SparkPass.Crypto.AES_GCM_SIV.Seal
+         SparkPass.Crypto.ChaCha20Poly1305.Seal
            (Key        => Entry_Key,
             Nonce      => Nonce,
             Plaintext  => Plaintext,
@@ -865,7 +865,7 @@ package body SparkPass.Vault is
       end;
 
       SparkPass.Crypto.Random.Fill (Key_Nonce);
-      SparkPass.Crypto.AES_GCM_SIV.Seal
+      SparkPass.Crypto.ChaCha20Poly1305.Seal
         (Key        => State.Master_Key,
          Nonce      => Key_Nonce,
          Plaintext  => Entry_Key,
@@ -947,7 +947,7 @@ package body SparkPass.Vault is
          begin
             --  ALWAYS unwrap entry key (constant time)
             Extract_Wrapped_Key (Current_Entry, Key_Nonce, Wrapped_Key, Wrapped_Tag);
-            SparkPass.Crypto.AES_GCM_SIV.Open
+            SparkPass.Crypto.ChaCha20Poly1305.Open
               (Key        => State.Master_Key,
                Nonce      => Key_Nonce,
                Ciphertext => Wrapped_Key,
@@ -977,7 +977,7 @@ package body SparkPass.Vault is
                   end loop;
 
                   --  Decrypt (always happens, result only used if match)
-                  SparkPass.Crypto.AES_GCM_SIV.Open
+                  SparkPass.Crypto.ChaCha20Poly1305.Open
                     (Key        => Temp_Entry_Key,
                      Nonce      => Current_Entry.Nonce,
                      Ciphertext => Ciphertext_View,
@@ -1143,7 +1143,7 @@ package body SparkPass.Vault is
 
             --  Decrypt entry with old master key
             Extract_Wrapped_Key (Current_Entry, Old_Key_Nonce, Old_Wrapped_Key, Old_Wrapped_Tag);
-            SparkPass.Crypto.AES_GCM_SIV.Open
+            SparkPass.Crypto.ChaCha20Poly1305.Open
               (Key        => State.Master_Key,
                Nonce      => Old_Key_Nonce,
                Ciphertext => Old_Wrapped_Key,
@@ -1173,7 +1173,7 @@ package body SparkPass.Vault is
                     Current_Entry.Ciphertext (Current_Entry.Ciphertext'First + Offset);
                end loop;
 
-               SparkPass.Crypto.AES_GCM_SIV.Open
+               SparkPass.Crypto.ChaCha20Poly1305.Open
                  (Key        => Old_Entry_Key,
                   Nonce      => Current_Entry.Nonce,
                   Ciphertext => Ciphertext_View,
@@ -1194,7 +1194,7 @@ package body SparkPass.Vault is
                Derive_Entry_Key (State, Current_Entry.Id, Label_Text (Label_Text'First .. Label_Text'First + Label_Len - 1), Entry_Key);
                SparkPass.Crypto.Random.Fill (Nonce);
 
-               SparkPass.Crypto.AES_GCM_SIV.Seal
+               SparkPass.Crypto.ChaCha20Poly1305.Seal
                  (Key        => Entry_Key,
                   Nonce      => Nonce,
                   Plaintext  => Plain_View,
@@ -1204,7 +1204,7 @@ package body SparkPass.Vault is
 
                --  Wrap entry key with new master
                SparkPass.Crypto.Random.Fill (Key_Nonce);
-               SparkPass.Crypto.AES_GCM_SIV.Seal
+               SparkPass.Crypto.ChaCha20Poly1305.Seal
                  (Key        => New_Master,
                   Nonce      => Key_Nonce,
                   Plaintext  => Entry_Key,
@@ -1298,7 +1298,7 @@ package body SparkPass.Vault is
          KEK : Key_Array;
          for KEK'Address use Shared_Secret (Shared_Secret'First)'Address;
       begin
-         SparkPass.Crypto.AES_GCM_SIV.Seal
+         SparkPass.Crypto.ChaCha20Poly1305.Seal
            (Key        => KEK,
             Nonce      => Wrapped_Master_Nonce,
             Plaintext  => Master_View,
@@ -1313,7 +1313,7 @@ package body SparkPass.Vault is
          KEK : Key_Array;
          for KEK'Address use Shared_Secret (Shared_Secret'First)'Address;
       begin
-         SparkPass.Crypto.AES_GCM_SIV.Seal
+         SparkPass.Crypto.ChaCha20Poly1305.Seal
            (Key        => KEK,
             Nonce      => Wrapped_Chain_Nonce,
             Plaintext  => Chain_View,
@@ -1525,7 +1525,7 @@ package body SparkPass.Vault is
          KEK : Key_Array;
          for KEK'Address use Shared_Secret (Shared_Secret'First)'Address;
       begin
-         SparkPass.Crypto.AES_GCM_SIV.Open
+         SparkPass.Crypto.ChaCha20Poly1305.Open
            (Key        => KEK,
             Nonce      => Wrapped_Master_Nonce,
             Ciphertext => Wrapped_Master_Key,
@@ -1550,7 +1550,7 @@ package body SparkPass.Vault is
          KEK : Key_Array;
          for KEK'Address use Shared_Secret (Shared_Secret'First)'Address;
       begin
-         SparkPass.Crypto.AES_GCM_SIV.Open
+         SparkPass.Crypto.ChaCha20Poly1305.Open
            (Key        => KEK,
             Nonce      => Wrapped_Chain_Nonce,
             Ciphertext => Wrapped_Chain_Key,
@@ -1617,7 +1617,7 @@ package body SparkPass.Vault is
 
       --  Wrap root key (Wrap_Key) with device secret
       --  Result: Wrapped_D = AES-256-GCM-SIV.Seal(Device_Secret, Nonce, Wrap_Key, AAD="")
-      SparkPass.Crypto.AES_GCM_SIV.Seal
+      SparkPass.Crypto.ChaCha20Poly1305.Seal
         (Key        => Device_Secret,
          Nonce      => State.Header.Wrapped_D_Nonce,
          Plaintext  => State.Wrap_Key,

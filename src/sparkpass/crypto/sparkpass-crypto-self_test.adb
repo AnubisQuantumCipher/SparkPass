@@ -2,7 +2,7 @@ pragma SPARK_Mode (Off);  -- Uses Ada.Real_Time and address clauses for testing
 with Ada.Real_Time;
 with Interfaces; use type Interfaces.Unsigned_8;
 with SparkPass.Crypto.Argon2id;
-with SparkPass.Crypto.AES_GCM_SIV;
+with SparkPass.Crypto.ChaCha20Poly1305;
 with SparkPass.Crypto.HKDF;
 with SparkPass.Crypto.MLDSA;
 with SparkPass.Crypto.MLKEM;
@@ -22,7 +22,7 @@ package body SparkPass.Crypto.Self_Test is
       return
         (R.Argon2_Status = Succeeded)
         and then (R.HKDF_Status = Succeeded)
-        and then (R.AES_Status = Succeeded)
+        and then (R.AEAD_Status = Succeeded)
         and then (R.MLKEM_Status = Succeeded)
         and then (R.MLDSA_Status = Succeeded)
         and then (R.MLDSA_Tamper = Detected)
@@ -546,7 +546,7 @@ package body SparkPass.Crypto.Self_Test is
          Argon2_Duration           => 0.0,
          Argon2_Used_Strong_Params => True,
          HKDF_Status               => Failed,
-         AES_Status                => Failed,
+         AEAD_Status                => Failed,
          MLKEM_Status              => Failed,
          MLDSA_Status              => Failed,
          MLDSA_Tamper              => Not_Detected,
@@ -607,12 +607,12 @@ package body SparkPass.Crypto.Self_Test is
             SparkPass.Crypto.Zeroize.Wipe (HKDF_Output);
          end;
 
-         --  Test AES-GCM-SIV
+         --  Test ChaCha20-Poly1305 (RFC 8439) AEAD
          if Result.HKDF_Status = Succeeded then
             SparkPass.Crypto.Random.Fill (Plain);
             SparkPass.Crypto.Random.Fill (Nonce);
 
-            SparkPass.Crypto.AES_GCM_SIV.Seal
+            SparkPass.Crypto.ChaCha20Poly1305.Seal
               (Key        => AES_Key,
                Nonce      => Nonce,
                Plaintext  => Plain,
@@ -620,7 +620,7 @@ package body SparkPass.Crypto.Self_Test is
                Ciphertext => Cipher,
                Tag        => Tag);
 
-            SparkPass.Crypto.AES_GCM_SIV.Open
+            SparkPass.Crypto.ChaCha20Poly1305.Open
               (Key        => AES_Key,
                Nonce      => Nonce,
                Ciphertext => Cipher,
@@ -630,13 +630,13 @@ package body SparkPass.Crypto.Self_Test is
                Success    => Verify_OK);
 
             if Verify_OK and then SparkPass.Crypto.Zeroize.Equal (Decrypted, Plain) then
-               Result.AES_Status := Succeeded;
+               Result.AEAD_Status := Succeeded;
             end if;
          end if;
       end if;
 
       --  Test ML-KEM
-      if Result.AES_Status = Succeeded then
+      if Result.AEAD_Status = Succeeded then
          SparkPass.Crypto.MLKEM.Keypair (Kem_Public, Kem_Secret);
          SparkPass.Crypto.MLKEM.Encapsulate (Kem_Public, Ciphertext, Shared_Enc, Kem_Enc_Success);
          if Kem_Enc_Success then

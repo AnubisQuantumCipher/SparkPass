@@ -1,47 +1,20 @@
-pragma SPARK_Mode (Off);  -- Uses FFI with libsodium for HMAC-SHA512
-with System;
+pragma SPARK_Mode (On);  -- Pure SPARK using SparkPass.Crypto.HMAC
 with Interfaces; use type Interfaces.Unsigned_8;
-with Interfaces.C;
-with Bindings.Libsodium;
+with SparkPass.Crypto.HMAC;
 with SparkPass.Crypto.Zeroize;
 
 package body SparkPass.Crypto.HKDF is
 
    Hash_Length        : constant Positive := 48; -- SHA-384 output length
 
-   procedure Sha512 (Input : Byte_Array; Output : out Hash64_Array) is
-      use Interfaces.C;
-      Input_Address : System.Address := Input (Input'First)'Address;
-      Input_Length  : Interfaces.C.unsigned_long_long := Interfaces.C.unsigned_long_long (Input'Length);
-   begin
-      if Bindings.Libsodium.Crypto_Hash_Sha512
-        (Output (Output'First)'Address,
-         Input_Address,
-         Input_Length) /= 0
-      then
-         raise Program_Error with "crypto_hash_sha512 failed";
-      end if;
-   end Sha512;
-
    function HMAC (Key : Byte_Array; Data : Byte_Array) return Hash64_Array is
-      use Interfaces.C;
       Result      : Hash64_Array;
-      Key_Address : System.Address := Key (Key'First)'Address;
-      Data_Address : System.Address := Data (Data'First)'Address;
-      Key_Length  : Interfaces.C.unsigned_long_long := Interfaces.C.unsigned_long_long (Key'Length);
-      Data_Length : Interfaces.C.unsigned_long_long := Interfaces.C.unsigned_long_long (Data'Length);
+      Key_Norm    : Byte_Array (1 .. Key'Length) := Key;
+      Data_Norm   : Byte_Array (1 .. Data'Length) := Data;
    begin
-      --  Use libsodium's crypto_auth_hmacsha512 instead of custom implementation
-      --  This provides better assurance through battle-tested, audited code
-      if Bindings.Libsodium.Crypto_Auth_Hmacsha512
-        (Result (Result'First)'Address,
-         Data_Address,
-         Data_Length,
-         Key_Address) /= 0
-      then
-         raise Program_Error with "crypto_auth_hmacsha512 failed";
-      end if;
-
+      --  Use pure SPARK HMAC-SHA512 (RFC 2104 compliant)
+      --  Provides cryptographic security with SPARK-proven memory safety
+      SparkPass.Crypto.HMAC.HMAC_SHA512 (Key_Norm, Data_Norm, Result);
       return Result;
    end HMAC;
 

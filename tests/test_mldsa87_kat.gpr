@@ -1,0 +1,51 @@
+--  GPR Project file for ML-DSA-87 NIST KAT validation tests
+--
+--  Build with: alr exec -- gprbuild -P tests/test_mldsa87_kat.gpr
+--  Run with:   ./bin/test_mldsa87_nist_kat tests/vectors/ml_dsa_87_kat.txt
+
+project Test_MLDSA87_KAT is
+
+   for Languages use ("Ada");
+
+   for Source_Dirs use (
+      ".",                                  -- Test sources (tests/ directory)
+      "../src/sparkpass",                   -- SparkPass root (types are here)
+      "../src/sparkpass/crypto"             -- Crypto implementations
+   );
+
+   for Object_Dir use "../obj/test_kat";
+   for Exec_Dir   use "../bin";
+   for Main use (
+      "test_mldsa87_nist_kat.adb",
+      "test_mldsa87_kat_simple.adb",
+      "test_mldsa87_minimal.adb"
+   );
+
+   package Compiler is
+      for Default_Switches ("Ada") use (
+         "-O2",                    -- Optimization level 2
+         "-gnatn",                 -- Enable inlining
+         "-gnatw.T",               -- Suppress warnings about deleted code
+         "-gnatwu",                -- Suppress warnings about unused units
+         "-gnatwr",                -- Suppress warnings about redundant constructs
+         "-gnat2012"               -- Ada 2012 standard
+      );
+   end Compiler;
+
+   package Binder is
+      for Default_Switches ("Ada") use ("-Es");  -- Store traceback in exceptions
+   end Binder;
+
+   package Linker is
+      for Default_Switches ("Ada") use (
+         "-Wl,-stack_size,0x4000000"  -- 64MB stack (ML-DSA uses large arrays)
+      );
+   end Linker;
+
+   package Builder is
+      for Executable ("test_mldsa87_nist_kat.adb") use "test_mldsa87_nist_kat";
+      for Executable ("test_mldsa87_kat_simple.adb") use "test_mldsa87_kat_simple";
+      for Executable ("test_mldsa87_minimal.adb") use "test_mldsa87_minimal";
+   end Builder;
+
+end Test_MLDSA87_KAT;
