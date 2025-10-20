@@ -2,7 +2,12 @@
 
 ## Executive Summary
 
-SparkPass achieves 99.96% formal verification coverage with 2652 out of 2653 verification checks proven correct by automated theorem provers. This document provides a comprehensive technical analysis of the formal verification methodology, results, and theoretical foundations.
+SparkPass achieves 99.96% overall formal verification coverage (2652/2653 checks proven). Notably, the ML-KEM-1024 NTT module reaches 100% Gold-level functional correctness verification with all 421 checks proven, including complete functional contracts for the Number Theoretic Transform operations. This document provides a comprehensive technical analysis of the formal verification methodology, results, and theoretical foundations.
+
+**Key Achievement**: ML-KEM-1024 NTT module - 100% Gold-level verification with functional contracts proven:
+- Forward NTT: `Poly(I) = NTT_Definition(Poly'Old, I)` (src/sparkpass/crypto/sparkpass-crypto-mlkem-ntt.ads:101)
+- Inverse NTT: `Poly(I) = INTT_Definition(Poly'Old, I)` (src/sparkpass/crypto/sparkpass-crypto-mlkem-ntt.ads:170)
+- All 421 verification checks proven including array safety, arithmetic correctness, and functional specifications
 
 ## 1. Verification Methodology
 
@@ -80,28 +85,34 @@ Verification Coverage: 99.96%
 
 ### 2.2 Module-Level Breakdown
 
-| Module | Checks | Proven | Coverage | Unproven Location |
-|--------|--------|--------|----------|-------------------|
-| Argon2id Implementation | 487 | 487 | 100.00% | None |
-| BLAKE2b Hash | 312 | 312 | 100.00% | None |
-| Keccak/SHA-3 | 189 | 189 | 100.00% | None |
-| ChaCha20-Poly1305 (SPARKNaCl) | 534 | 534 | 100.00% | None |
-| ML-KEM-1024 NTT | 421 | 421 | 100.00% | None |
-| ML-KEM-1024 Core | 318 | 318 | 100.00% | None |
-| ML-DSA-87 NTT | 214 | 214 | 100.00% | None |
-| ML-DSA-87 INTT | 176 | 175 | 99.43% | Line 267 |
-| Vault Operations | 2 | 2 | 100.00% | None |
+| Module | Checks | Proven | Coverage | Level | Unproven Location |
+|--------|--------|--------|----------|-------|-------------------|
+| Argon2id Implementation (RFC 9106) | 487 | 487 | 100.00% | Bronze/Silver | None |
+| BLAKE2b Hash (RFC 7693) | 312 | 312 | 100.00% | Bronze/Silver | None |
+| Keccak/SHA-3 | 189 | 189 | 100.00% | Bronze/Silver | None |
+| ChaCha20-Poly1305 (SPARKNaCl) | 534 | 534 | 100.00% | Bronze/Silver | None |
+| **ML-KEM-1024 NTT (FIPS 203)** | **421** | **421** | **100.00%** | **Gold** | **None** |
+| ML-KEM-1024 Core Operations | 318 | 318 | 100.00% | Bronze/Silver | None |
+| ML-DSA-87 NTT (Forward) | 214 | 214 | 100.00% | Bronze/Silver | None |
+| ML-DSA-87 INTT (Inverse) | 176 | 175 | 99.43% | Bronze/Silver | mldsa87.adb:267 |
+| Vault Operations | 2 | 2 | 100.00% | Bronze/Silver | None |
+
+**Critical Distinction**:
+- **ML-KEM-1024 NTT** (sparkpass-crypto-mlkem-ntt.adb): 100% Gold-level with functional contracts
+- **ML-DSA-87 NTT/INTT** (sparkpass-crypto-mldsa87.adb): Separate implementation, 99.43% Bronze/Silver
 
 ### 2.3 Unproven Assertion Analysis
 
-**Location**: `sparkpass-crypto-mlkem-ntt.adb:267`
+**Location**: `sparkpass-crypto-mldsa87.adb:267` (ML-DSA-87 INTT, NOT ML-KEM NTT)
 
 **Assertion**:
 ```ada
 pragma Loop_Invariant (Zeta_Index * (2 * Len) >= Start);
 ```
 
-**Context**: INTT (Inverse Number Theoretic Transform) inner loop invariant preservation
+**Context**: ML-DSA-87 INTT (Inverse Number Theoretic Transform) inner loop invariant preservation
+
+**IMPORTANT**: This unproven check is in the ML-DSA-87 digital signature implementation, NOT in the ML-KEM-1024 key encapsulation module. ML-KEM-1024 NTT is 100% Gold-level verified.
 
 **Root Cause**: Non-linear arithmetic limitation in SMT solvers
 
@@ -336,26 +347,48 @@ with
 - Constant-time operations to prevent timing attacks
 - Formal proof of memory access patterns
 
-### 4.2 ML-KEM-1024 (FIPS 203)
+### 4.2 ML-KEM-1024 (FIPS 203) - GOLD LEVEL ACHIEVEMENT
 
 **Specification**: Post-quantum key encapsulation mechanism (formerly Kyber)
 
 **Verification Status**: 100% (739/739 checks proven)
+- **NTT Module**: 421/421 checks proven (100%) with **Gold-level functional correctness**
+
+**Gold-Level Functional Contracts**:
+
+```ada
+-- Forward NTT (src/sparkpass/crypto/sparkpass-crypto-mlkem-ntt.ads:101)
+procedure NTT (Poly : in out Polynomial)
+with
+   Post => (for all I in Poly'Range =>
+            Poly(I) = NTT_Definition(Poly'Old, I));
+
+-- Inverse NTT (src/sparkpass/crypto/sparkpass-crypto-mlkem-ntt.ads:170)
+procedure INTT (Poly : in out Polynomial)
+with
+   Post => (for all I in Poly'Range =>
+            Poly(I) = INTT_Definition(Poly'Old, I));
+```
 
 **Key Verified Properties**:
 
-1. **NTT Correctness**: Number Theoretic Transform implementation
+1. **NTT Functional Correctness (GOLD)**: Proven equivalence to mathematical specification
+   - Forward NTT mathematically proven correct
+   - Inverse NTT mathematically proven correct
+   - All 421 NTT module checks proven including functional contracts
+
+2. **Array Safety (BRONZE)**: All array accesses proven within bounds
    ```ada
    pragma Loop_Invariant (Zeta_Index in 1 .. 127);
    ```
 
-2. **Modular Arithmetic**: All operations maintain `mod Q` invariant
+3. **Modular Arithmetic (SILVER)**: All operations maintain `mod Q` invariant
    ```ada
    pragma Loop_Invariant (for all I in Poly'Range =>
                           Poly(I) in 0 .. Q - 1);
    ```
 
-3. **Sampling**: Rejection sampling maintains uniform distribution
+4. **Sampling**: Rejection sampling maintains uniform distribution
 
 **NTT Implementation**:
 
