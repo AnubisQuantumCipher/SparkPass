@@ -16,7 +16,7 @@ package body SparkPass.Crypto.ReedSolomon is
       for I in 1 .. 254 loop
          Value := Value * 2;
          if Value >= 256 then
-            Value := Value xor 16#1D#;  -- GF_Poly with bit 8 removed
+            Value := Value xor 16#11D#;  -- GF_Poly with bit 8 removed
          end if;
          --  Value is guaranteed to be < 256 after XOR operation
          GF_Antilog (I) := GF256_Element (Value and 16#FF#);
@@ -116,7 +116,7 @@ package body SparkPass.Crypto.ReedSolomon is
       RS_Generator (0) := 1;
 
       for I in 0 .. Parity_Symbols - 1 loop
-         Root := GF_Antilog (I);
+         Root := GF_Antilog (I + 1);
          Temp := (others => 0);
 
          for J in 0 .. I loop
@@ -199,7 +199,7 @@ package body SparkPass.Crypto.ReedSolomon is
             for J in 1 .. Parity_Symbols loop
                Remainder (J) := GF_Add (
                   Remainder (J),
-                  GF_Multiply (RS_Generator (J), Feedback)
+                  GF_Multiply (RS_Generator (J - 1), Feedback)
                );
             end loop;
          end if;
@@ -228,7 +228,7 @@ package body SparkPass.Crypto.ReedSolomon is
       --  If all syndromes = 0, no errors detected
       for I in 0 .. 2 * Correction_Capacity - 1 loop
          --  Root = α^i
-         Root := GF_Antilog (I);
+         Root := GF_Antilog (I + 1);
 
          --  Evaluate received polynomial at root
          Syndrome := Poly_Eval (Byte_Array (Codeword), Root);
@@ -355,7 +355,7 @@ package body SparkPass.Crypto.ReedSolomon is
 
       --  Initialize powers: Powers[i] = α^(-i) for i = 1..Degree
       for I in 1 .. Degree loop
-         Powers (I) := GF_Antilog ((255 - I) mod 255);
+         Powers (I) := 1;
       end loop;
 
       --  Test each codeword position
@@ -498,7 +498,7 @@ package body SparkPass.Crypto.ReedSolomon is
 
       --  Step 2: Compute syndromes explicitly for Berlekamp-Massey
       for I in 0 .. 2 * Correction_Capacity - 1 loop
-         Syndromes (I + 1) := Poly_Eval (Byte_Array (Codeword), GF_Antilog (I));
+         Syndromes (I + 1) := Poly_Eval (Byte_Array (Codeword), GF_Antilog (I + 1));
       end loop;
 
       --  Step 3: Berlekamp-Massey algorithm (find error locator polynomial)

@@ -464,8 +464,7 @@ begin
             end if;
 
             --  Prompt for secret securely (not from command-line)
-            SparkPass.CLI.Password_Input.Read_Password
-              ("Enter secret: ", Secret_Buf, Secret_Len, Read_Success);
+            SparkPass.CLI.Password_Input.Read_Secret ("Enter secret: ", Secret_Buf, Secret_Len, Read_Success);
 
             if not Read_Success then
                Put_Line ("✗ failed to read secret");
@@ -1054,6 +1053,17 @@ begin
                Success       => Import_Success);
 
             if Import_Success then
+
+               declare
+                  Save_State : SparkPass.Vault.Save_Status;
+               begin
+                  SparkPass.Vault.Save (Vault_Buffer.all, Vault_Path, Save_State);
+                  case Save_State is
+                     when SparkPass.Vault.Saved => null;
+                     when SparkPass.Vault.Io_Error => Put_Line ("✗ failed to save recovered vault (I/O error)");
+                  end case;
+               end;
+
                Put_Line ("✓ Vault recovered successfully!");
                Put_Line ("");
                Put_Line ("The master keys have been restored from the recovery file.");

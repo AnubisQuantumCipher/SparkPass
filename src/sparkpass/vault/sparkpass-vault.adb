@@ -1302,7 +1302,7 @@ package body SparkPass.Vault is
            (Key        => KEK,
             Nonce      => Wrapped_Master_Nonce,
             Plaintext  => Master_View,
-            AAD        => State.Header.Vault_Fingerprint,
+            AAD        => State.Header.Argon2_Salt,
             Ciphertext => Wrapped_Master_Key,
             Tag        => Wrapped_Master_Tag);
       end;
@@ -1529,7 +1529,7 @@ package body SparkPass.Vault is
            (Key        => KEK,
             Nonce      => Wrapped_Master_Nonce,
             Ciphertext => Wrapped_Master_Key,
-            AAD        => Vault_Tmp.Header.Vault_Fingerprint,
+            AAD        => Vault_Tmp.Header.Argon2_Salt,
             Tag        => Wrapped_Master_Tag,
             Plaintext  => Master_View,
             Success    => Unwrap_Success);
@@ -1569,6 +1569,133 @@ package body SparkPass.Vault is
          Clear (Vault_Tmp);
          return;
       end if;
+
+      --  Re-encrypt all entries to recovered master/chain keys
+      declare
+         Old_Master    : Key_Array := Vault_Tmp.Master_Key;
+         Recovered_Key : constant Key_Array := Master_Key;
+         Recovered_Chain : constant Chain_Key_Array := Chain_Key;
+         Entry_Key     : Key_Array := (others => 0);
+         Old_Entry_Key : Key_Array := (others => 0);
+         Label_Text    : SparkPass.Types.Byte_Array (1 .. SparkPass.Config.Max_Label_Length);
+         Nonce         : Nonce_Array := (others => 0);
+         Tag           : Tag_Array := (others => 0);
+         Cipher        : SparkPass.Types.Byte_Array (1 .. SparkPass.Config.Max_Data_Length);
+         Key_Nonce     : Nonce_Array := (others => 0);
+         Wrapped_Key   : Key_Array := (others => 0);
+         Wrapped_Tag   : Tag_Array := (others => 0);
+         Old_Key_Nonce : Nonce_Array := (others => 0);
+         Old_Wrapped_Key : Key_Array := (others => 0);
+         Old_Wrapped_Tag : Tag_Array := (others => 0);
+         Unwrap_Success : Boolean := False;
+      begin
+         --  Copy header and entries from current vault
+         State.Header := Vault_Tmp.Header;
+         State.Entry_Count := Vault_Tmp.Entry_Count;
+         for Index in State.Entries'Range loop
+            State.Entries (Index) := Vault_Tmp.Entries (Index);
+         end loop;
+
+         --  Set chain key to recovered BEFORE deriving new entry keys
+         State.Chain_Key := Recovered_Chain;
+
+         --  Re-encrypt each entry
+         for Index in 1 .. Natural (State.Entry_Count) loop
+            declare
+               Current_Entry : SparkPass.Types.Entry_Record := State.Entries (Index);
+               Label_Len : constant Natural := Natural (Current_Entry.Label_Len);
+            begin
+               -- Extract label
+               for Offset in 0 .. Label_Len - 1 loop
+                  Label_Text (Label_Text'First + Offset) :=
+                    Current_Entry.Label (Current_Entry.Label'First + Offset);
+               end loop;
+               -- Unwrap old entry key with old master
+               Extract_Wrapped_Key (Current_Entry, Old_Key_Nonce, Old_Wrapped_Key, Old_Wrapped_Tag);
+               SparkPass.Crypto.ChaCha20Poly1305.Open
+                 (Key        => Old_Master,
+                  Nonce      => Old_Key_Nonce,
+                  Ciphertext => Old_Wrapped_Key,
+                  AAD        => Current_Entry.Id,
+                  Tag        => Old_Wrapped_Tag,
+                  Plaintext  => Old_Entry_Key,
+                  Success    => Unwrap_Success);
+               if not Unwrap_Success then
+                  SparkPass.Crypto.Zeroize.Wipe (Old_Entry_Key);
+                  exit; -- abort loop; will fail later if keys mismatch
+               end if;
+               declare
+                  AAD : SparkPass.Types.Byte_Array (1 .. Label_Len);
+                  Expected_Length : constant Natural := Natural (Current_Entry.Data_Len);
+                  Ciphertext_View : SparkPass.Types.Byte_Array (1 .. Expected_Length);
+                  Plain_View      : SparkPass.Types.Byte_Array (1 .. Expected_Length);
+               begin
+                  for Offset in 0 .. Label_Len - 1 loop
+                     AAD (AAD'First + Offset) := Label_Text (Label_Text'First + Offset);
+                  end loop;
+                  for Offset in 0 .. Expected_Length - 1 loop
+                     Ciphertext_View (Ciphertext_View'First + Offset) :=
+                       Current_Entry.Ciphertext (Current_Entry.Ciphertext'First + Offset);
+                  end loop;
+                  SparkPass.Crypto.ChaCha20Poly1305.Open
+                    (Key        => Old_Entry_Key,
+                     Nonce      => Current_Entry.Nonce,
+                     Ciphertext => Ciphertext_View,
+                     AAD        => AAD,
+                     Tag        => Current_Entry.Tag,
+                     Plaintext  => Plain_View,
+                     Success    => Unwrap_Success);
+                  if not Unwrap_Success then
+                     SparkPass.Crypto.Zeroize.Wipe (Old_Entry_Key);
+                     SparkPass.Crypto.Zeroize.Wipe (Plain_View);
+                     exit;
+                  end if;
+
+                  -- Derive new entry key under recovered chain/master context
+                  Derive_Entry_Key (State, Current_Entry.Id, Label_Text (Label_Text'First .. Label_Text'First + Label_Len - 1), Entry_Key);
+                  SparkPass.Crypto.Random.Fill (Nonce);
+                  SparkPass.Crypto.ChaCha20Poly1305.Seal
+                    (Key        => Entry_Key,
+                     Nonce      => Nonce,
+                     Plaintext  => Plain_View,
+                     AAD        => AAD,
+                     Ciphertext => Cipher (Cipher'First .. Cipher'First + Expected_Length - 1),
+                     Tag        => Tag);
+                  -- Wrap entry key with recovered master
+                  SparkPass.Crypto.Random.Fill (Key_Nonce);
+                  SparkPass.Crypto.ChaCha20Poly1305.Seal
+                    (Key        => Recovered_Key,
+                     Nonce      => Key_Nonce,
+                     Plaintext  => Entry_Key,
+                     AAD        => Current_Entry.Id,
+                     Ciphertext => Wrapped_Key,
+                     Tag        => Wrapped_Tag);
+                  -- Update entry fields
+                  for Offset in 0 .. Expected_Length - 1 loop
+                     State.Entries (Index).Ciphertext (State.Entries (Index).Ciphertext'First + Offset) :=
+                       Cipher (Cipher'First + Offset);
+                  end loop;
+                  State.Entries (Index).Nonce := Nonce;
+                  State.Entries (Index).Tag := Tag;
+                  Store_Wrapped_Key (State.Entries (Index), Key_Nonce, Wrapped_Key, Wrapped_Tag);
+
+                  SparkPass.Crypto.Zeroize.Wipe (Plain_View);
+                  SparkPass.Crypto.Zeroize.Wipe (AAD);
+               end;
+               SparkPass.Crypto.Zeroize.Wipe (Old_Entry_Key);
+            end;
+         end loop;
+         -- Now set recovered master key in state and wrap header secrets
+         State.Master_Key := Recovered_Key;
+         Wrap_Secrets (State);
+         SparkPass.Vault.Header.Bump (State.Header, Vault_Tmp.Header.Modified_At + 1);
+         SparkPass.Vault.Header.Refresh_Fingerprint (State.Header);
+         SparkPass.Vault.Header.Update_Signature (State.Header);
+
+         -- Zeroize temps
+         SparkPass.Crypto.Zeroize.Wipe (Entry_Key);
+         SparkPass.Crypto.Zeroize.Wipe (Cipher);
+      end;
 
       --  Step 5: Reconstruct vault state with recovered keys (field by field)
       State.Header := Vault_Tmp.Header;
