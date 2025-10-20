@@ -1,4 +1,0 @@
-
-volatile_or_not.adb:9:09: warning: unused assignment
-    9 |      N := Tmp;
-      |      ~~^~~~~~

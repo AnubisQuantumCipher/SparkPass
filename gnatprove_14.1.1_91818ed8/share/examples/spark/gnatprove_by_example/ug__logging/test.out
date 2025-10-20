@@ -1,1 +1,0 @@
-logging.ads:10:13: info: implicit aspect Always_Terminates on "Log_Size" has been proved, subprogram will terminate

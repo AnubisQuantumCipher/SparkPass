@@ -1,6 +1,0 @@
-(* Why driver for first-order tptp provers *)
-
-timeout "Time Out Virtual"
-
-import "tptp.gen"
-import "discrimination.gen"

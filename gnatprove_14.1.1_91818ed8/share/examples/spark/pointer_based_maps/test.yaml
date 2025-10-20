@@ -1,6 +1,0 @@
-large: True
-replay: True
-prove_all:
-  opt: ["--function-sandboxing=off"]
-session_opt:
-  level: 2

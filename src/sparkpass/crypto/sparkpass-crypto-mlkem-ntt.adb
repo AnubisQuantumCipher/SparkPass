@@ -2,6 +2,7 @@ pragma SPARK_Mode (On);
 
 with SparkPass.Crypto.MLKEM.Arithmetic; use SparkPass.Crypto.MLKEM.Arithmetic;
 with SparkPass.Crypto.MLKEM.NTT.Constants; use SparkPass.Crypto.MLKEM.NTT.Constants;
+with SparkPass.Crypto.MLKEM.NTT.Arithmetic_Lemmas; use SparkPass.Crypto.MLKEM.NTT.Arithmetic_Lemmas;
 
 --  ========================================================================
 --  ML-KEM-1024 NTT Implementation
@@ -137,11 +138,16 @@ package body SparkPass.Crypto.MLKEM.NTT is
             pragma Loop_Invariant (Start >= 0 and Start < 256);
             pragma Loop_Invariant (Len in 2 | 4 | 8 | 16 | 32 | 64 | 128);
             pragma Loop_Invariant (Zeta_Index >= 1 and Zeta_Index <= 128);
+            pragma Loop_Invariant (Zeta_Index <= 127 + (256 - Start) / (2 * Len));
             pragma Loop_Invariant (for all I in Polynomial'Range => Poly(I) in 0 .. Q - 1);
 
             --  Load twiddle factor for this block
             --  ζ^BitRev₇(k) where k increments each block
-            pragma Assert (Zeta_Index >= 0 and Zeta_Index <= 127);
+            --  At loop entry: Zeta_Index <= 128 (general bound)
+            --  But division invariant proves Zeta_Index <= 127 for array access
+            --  Use lemma to help SMT prove this implication
+            Lemma_NTT_Index_Safety (Zeta_Index, Start, Len);
+            pragma Assert (Zeta_Index in 1..127);
             Zeta := Zeta_BitRev (Zeta_Index);
             Zeta_Index := Zeta_Index + 1;
 
@@ -240,6 +246,7 @@ package body SparkPass.Crypto.MLKEM.NTT is
             pragma Loop_Invariant (Start mod (2 * Len) = 0);
             pragma Loop_Invariant (Start >= 0 and Start < 256);
             pragma Loop_Invariant (Len in 2 | 4 | 8 | 16 | 32 | 64 | 128);
+            pragma Loop_Invariant (Zeta_Index >= 0 and Zeta_Index <= 127);
             pragma Loop_Invariant (for all K in Polynomial'Range => Poly(K) in 0 .. Q - 1);
 
             --  Load twiddle factor for this block

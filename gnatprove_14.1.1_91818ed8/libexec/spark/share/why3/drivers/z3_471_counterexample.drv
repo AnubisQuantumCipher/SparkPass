@@ -1,9 +1,0 @@
-
-import "z3_471.drv"
-
-theory BuiltIn
-
-  meta "get_counterexmp" ""
-  meta "meta_incremental" ""
-
-end

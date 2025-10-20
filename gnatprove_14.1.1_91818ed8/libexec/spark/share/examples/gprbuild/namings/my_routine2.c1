@@ -1,4 +1,0 @@
-void c_routine (int *c) {
-  *c = 2;
-};
-

@@ -41,3 +41,8 @@ test/test_*
 *.tmp
 *.bak
 *.log
+*.adb.stdout
+*.adb.stderr
+
+# Vendor toolchains
+gnatprove_*/
