@@ -267,6 +267,25 @@ package SparkPass.Crypto.MLKEM.NTT is
    --  Mathematical Specification (Gold Level Functional Correctness)
    --  ------------------------------------------------------------------------
 
+   --  Ghost function: Mathematical definition of NTT
+   --  Implementation provided in sparkpass-crypto-mlkem-ntt-proofs.adb
+   function NTT_Definition (Poly : Polynomial; K : Natural) return Coefficient
+   with
+      Ghost,
+      Global => null,
+      Pre  => K in 0 .. N - 1,
+      Post => NTT_Definition'Result in 0 .. Q - 1,
+      Import;
+
+   --  Ghost function: Mathematical definition of INTT
+   --  Implementation provided in sparkpass-crypto-mlkem-ntt-proofs.adb
+   function INTT_Definition (Poly : Polynomial; J : Natural) return Coefficient
+   with
+      Ghost,
+      Global => null,
+      Pre  => J in 0 .. N - 1,
+      Post => INTT_Definition'Result in 0 .. Q - 1,
+      Import;
 
    --  ------------------------------------------------------------------------
    --  Form Verification (Helper Predicates)
