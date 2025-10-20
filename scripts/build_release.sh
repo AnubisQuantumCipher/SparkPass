@@ -64,6 +64,73 @@ fi
 echo -e "${YELLOW}Stripping debug symbols...${NC}"
 strip bin/sparkpass_main
 
+# Fix RPATH issues for standalone binary (macOS)
+if [ "${PLATFORM}" = "darwin" ]; then
+    echo -e "${YELLOW}Fixing RPATH for standalone binary...${NC}"
+
+    # Get all RPATHs
+    RPATHS=$(otool -l bin/sparkpass_main | grep -A2 LC_RPATH | grep path | awk '{print $2}')
+
+    # Remove all toolchain-specific RPATHs
+    for rpath in $RPATHS; do
+        if [[ "$rpath" == *"alire"* ]] || [[ "$rpath" == *"toolchains"* ]]; then
+            echo "  Removing RPATH: $rpath"
+            install_name_tool -delete_rpath "$rpath" bin/sparkpass_main 2>/dev/null || true
+        fi
+    done
+
+    # Verify system libraries are accessible
+    echo -e "${YELLOW}Verifying library dependencies...${NC}"
+    otool -L bin/sparkpass_main | grep -v ":" | while read -r lib rest; do
+        if [[ "$lib" == /opt/homebrew/* ]]; then
+            echo "  Warning: Homebrew dependency: $lib"
+        elif [[ "$lib" == /usr/local/* ]]; then
+            echo "  Warning: /usr/local dependency: $lib"
+        fi
+    done
+fi
+
+# Test binary functionality BEFORE packaging
+echo -e "${YELLOW}Testing binary functionality...${NC}"
+TEST_OUTPUT=$(./bin/sparkpass_main --version 2>&1)
+if [ $? -ne 0 ]; then
+    echo -e "${RED}Error: Binary execution failed${NC}"
+    echo "Output: $TEST_OUTPUT"
+    exit 1
+fi
+
+# Check for version string in output
+if ! echo "$TEST_OUTPUT" | grep -q "SparkPass version"; then
+    echo -e "${RED}Error: Binary did not produce version output${NC}"
+    echo "Output: $TEST_OUTPUT"
+    exit 1
+fi
+
+echo -e "${GREEN}Binary test passed: --version works${NC}"
+
+# Quick init test with timeout
+echo -e "${YELLOW}Testing vault initialization (30s timeout)...${NC}"
+TEST_VAULT="/tmp/sparkpass_build_test_$$.spass"
+rm -f "$TEST_VAULT"
+
+# Run with timeout and capture output
+if timeout 30 bash -c "echo -e 'test_password_12345\ntest_password_12345' | ./bin/sparkpass_main init '$TEST_VAULT' 2>&1" > /tmp/init_test.log; then
+    if [ -f "$TEST_VAULT" ]; then
+        echo -e "${GREEN}Binary test passed: vault init works${NC}"
+        rm -f "$TEST_VAULT"
+    else
+        echo -e "${RED}Warning: init command succeeded but vault file not created${NC}"
+        cat /tmp/init_test.log
+    fi
+else
+    echo -e "${RED}Error: Binary init test failed or timed out${NC}"
+    echo "Last 20 lines of output:"
+    tail -20 /tmp/init_test.log
+    exit 1
+fi
+
+rm -f /tmp/init_test.log
+
 # Create distribution directory
 DIST_PATH="${BUILD_DIR}/${RELEASE_NAME}"
 mkdir -p "${DIST_PATH}"
