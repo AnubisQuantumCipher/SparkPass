@@ -47,9 +47,9 @@ alr exec -- gnatprove -P sparkpass.gpr --mode=prove --level=2 \
 ## Expected Results
 
 ### Easy Lemmas (Expected: 95%+ automatic proof)
-- ✅ **Lemma_Zeta_Primitive_Root** - Concrete arithmetic (ζ^256, ζ^512)
-- ✅ **Lemma_N_Inverse_Correct** - Direct computation: 256 × 3303 mod 3329
-- ✅ **Lemma_Orthogonality_One** - When diff = 0, all terms are 1
+-  **Lemma_Zeta_Primitive_Root** - Concrete arithmetic (ζ^256, ζ^512)
+-  **Lemma_N_Inverse_Correct** - Direct computation: 256 × 3303 mod 3329
+-  **Lemma_Orthogonality_One** - When diff = 0, all terms are 1
 
 **Reason:** These involve only concrete modular arithmetic that SMT solvers handle well.
 
@@ -61,10 +61,10 @@ alr exec -- gnatprove -P sparkpass.gpr --mode=prove --level=2 \
 **Reason:** Complex algebraic properties, but ghost assertions guide SMT solver through steps.
 
 ### Hard Lemmas (Expected: 30-40% automatic proof, need more work)
-- ❌ **Lemma_NTT_Implementation_Correct** - Requires loop invariants in NTT.adb
-- ❌ **Lemma_INTT_Implementation_Correct** - Requires loop invariants in INTT
-- ❌ **Lemma_NTT_INTT_Roundtrip_Full** - Composition of complex properties
-- ❌ **Theorem_NTT_Roundtrip_Correct** - Top-level theorem
+-  **Lemma_NTT_Implementation_Correct** - Requires loop invariants in NTT.adb
+-  **Lemma_INTT_Implementation_Correct** - Requires loop invariants in INTT
+-  **Lemma_NTT_INTT_Roundtrip_Full** - Composition of complex properties
+-  **Theorem_NTT_Roundtrip_Correct** - Top-level theorem
 
 **Reason:** These bridge FFT implementation to mathematical DFT definition, requiring detailed loop invariants.
 
@@ -103,10 +103,10 @@ Pure SPARK ghost code with explicit ghost assertions can guide SMT solvers to au
 5. **Compose** lemmas bottom-up to prove top-level theorem
 
 ### Success Criteria
-- ✅ **Bronze (Expected)**: All easy lemmas prove automatically (>95%)
-- ✅ **Silver (Expected)**: Medium lemmas prove with ghost assertions (>60%)
+-  **Bronze (Expected)**: All easy lemmas prove automatically (>95%)
+-  **Silver (Expected)**: Medium lemmas prove with ghost assertions (>60%)
 - ⚠️ **Gold (Uncertain)**: Hard lemmas prove with loop invariants (>30%)
-- ❌ **Platinum (Not Yet)**: Full theorem proven automatically (<10% expected now)
+-  **Platinum (Not Yet)**: Full theorem proven automatically (<10% expected now)
 
 ---
 
@@ -118,9 +118,9 @@ Pure SPARK ghost code with explicit ghost assertions can guide SMT solvers to au
 **Phase:** 3 of 3 (flow analysis and proof) - COMPLETE
 
 **Flow Analysis Results:**
-- ✅ All 17 subprograms flow analyzed successfully
-- ✅ No flow errors
-- ✅ 122 termination checks (110 by flow, 12 by SMT provers)
+-  All 17 subprograms flow analyzed successfully
+-  No flow errors
+-  122 termination checks (110 by flow, 12 by SMT provers)
 
 **Proof Results - FINAL:**
 - **Total VCs:** 2635
@@ -142,7 +142,7 @@ Pure SPARK ghost code with explicit ghost assertions can guide SMT solvers to au
 
 ## Detailed Analysis of Proven vs Unproven
 
-### ✅ Fully Proven Functions (7/17 - 41%)
+###  Fully Proven Functions (7/17 - 41%)
 
 1. **Mod_Exp** - Modular exponentiation (12/12 checks)
 2. **Lemma_Zeta_Primitive_Root** - Primitive root axiom (0 checks by design)
@@ -157,53 +157,53 @@ Pure SPARK ghost code with explicit ghost assertions can guide SMT solvers to au
 **High Success Rate (>80% proven):**
 
 1. **INTT_Definition** - 12/14 checks (86% proven)
-   - ✅ All loop invariants and bounds proven
-   - ❌ 1 overflow check in sum computation
-   - ❌ 1 overflow check in final multiplication
+   -  All loop invariants and bounds proven
+   -  1 overflow check in sum computation
+   -  1 overflow check in final multiplication
 
 2. **NTT_Definition** - 10/11 checks (91% proven)
-   - ✅ All loop invariants proven
-   - ❌ 1 overflow check in sum computation
+   -  All loop invariants proven
+   -  1 overflow check in sum computation
 
 3. **Orthogonality_Sum** - 11/12 checks (92% proven)
-   - ✅ Most loop invariants proven
-   - ❌ 1 loop invariant preservation (Sum < N * Q)
+   -  Most loop invariants proven
+   -  1 loop invariant preservation (Sum < N * Q)
 
 4. **Mod_Inv** - 24/27 checks (89% proven)
-   - ✅ Core Extended Euclidean algorithm proven
-   - ❌ 1 loop invariant (abs New_T <= Integer(Q))
-   - ❌ 2 postcondition assertions
+   -  Core Extended Euclidean algorithm proven
+   -  1 loop invariant (abs New_T <= Integer(Q))
+   -  2 postcondition assertions
 
 **Medium Success Rate (60-80% proven):**
 
 5. **Lemma_Orthogonality_One** - 7/9 checks (78% proven)
-   - ✅ Most structural checks proven
-   - ❌ 1 overflow check in multiplication
-   - ❌ 1 postcondition assertion
+   -  Most structural checks proven
+   -  1 overflow check in multiplication
+   -  1 postcondition assertion
 
 6. **Lemma_Orthogonality_Zero** - 14/16 checks (88% proven)
-   - ✅ Most ghost assertions proven
-   - ❌ 1 postcondition assertion
+   -  Most ghost assertions proven
+   -  1 postcondition assertion
 
 7. **Lemma_Single_Coefficient_Roundtrip** - 14/16 checks (88% proven)
-   - ✅ Most algebraic manipulation proven
-   - ❌ 2 unproven checks
+   -  Most algebraic manipulation proven
+   -  2 unproven checks
 
 **Lower Success Rate (due to implementation bridge):**
 
 8. **Lemma_NTT_Implementation_Correct** - 3/4 checks (75% proven)
-   - ✅ Structural checks proven
-   - ❌ 1 postcondition (requires actual NTT implementation proof)
+   -  Structural checks proven
+   -  1 postcondition (requires actual NTT implementation proof)
 
 9. **Lemma_INTT_Implementation_Correct** - 3/4 checks (75% proven)
-   - ✅ Structural checks proven
-   - ❌ 1 postcondition (requires actual INTT implementation proof)
+   -  Structural checks proven
+   -  1 postcondition (requires actual INTT implementation proof)
 
 ---
 
 ## Assessment Against Success Criteria
 
-### ✅ **Silver Criteria - EXCEEDED** (Expected >60%, Achieved 73%)
+###  **Silver Criteria - EXCEEDED** (Expected >60%, Achieved 73%)
 
 **Result:** Ghost assertion methodology WORKS for medium-complexity lemmas!
 
@@ -239,8 +239,8 @@ Pure SPARK ghost code with explicit ghost assertions can guide SMT solvers to au
 
 ## Next Steps Based on Results
 
-### ✅ **ACHIEVED: >60% automatic proof rate**
-1. ✅ Celebrate! Ghost assertion methodology WORKS
+###  **ACHIEVED: >60% automatic proof rate**
+1.  Celebrate! Ghost assertion methodology WORKS
 2. ⏳ Refine remaining unproven VCs with additional assertions
 3. ⏳ Add loop variants to satisfy termination proofs
 4. ⏳ Complete NTT round-trip proof within 2-4 weeks
@@ -253,7 +253,7 @@ Pure SPARK ghost code with explicit ghost assertions can guide SMT solvers to au
 5. ⏳ Complete within 4-8 weeks
 
 ### If <30% automatic proof rate:
-1. ❌ Current approach needs significant refinement
+1.  Current approach needs significant refinement
 2. ⏳ May need to simplify lemma structure
 3. ⏳ Consider alternative proof decompositions
 4. ⏳ Might need manual loop invariants in more places
@@ -264,13 +264,13 @@ Pure SPARK ghost code with explicit ghost assertions can guide SMT solvers to au
 ## What This Means for SparkPass
 
 ### Current Proof Status (Before This Verification)
-- ✅ **Silver Level**: Memory safety proven (99.49% of VCs)
+-  **Silver Level**: Memory safety proven (99.49% of VCs)
 - ⚠️ **Gold Level**: 30% complete (partial correctness proofs)
 - ⏳ **Platinum Level**: Foundation laid, path established
 
 ### After Successful Verification (Expected)
-- ✅ **Silver Level**: Still achieved
-- ✅ **Gold Level**: 70% complete (NTT correctness 70% proven)
+-  **Silver Level**: Still achieved
+-  **Gold Level**: 70% complete (NTT correctness 70% proven)
 - ⏳ **Platinum Level**: Foundation 40% complete, methodology validated
 
 ### Timeline Impact
@@ -308,21 +308,21 @@ Pure SPARK ghost code with explicit ghost assertions can guide SMT solvers to au
 
 **What We Accomplished:**
 
-1. **✅ Validated Pure SPARK Methodology**
+1. ** Validated Pure SPARK Methodology**
    - 830 lines of formal proof code
    - 73% automatic verification by SMT solvers (CVC5, Z3, Alt-Ergo)
    - No Coq, no Isabelle, no external theorem provers
    - 100% flow analysis success
    - 100% termination proof
 
-2. **✅ Mathematical Correctness Proven**
+2. ** Mathematical Correctness Proven**
    - Modular arithmetic operations: PROVEN
    - Primitive root properties: SPECIFIED (runtime verified)
    - Normalization constants: SPECIFIED (runtime verified)
    - Orthogonality relations: 78-88% PROVEN
    - Round-trip composition: PROVEN
 
-3. **✅ Engineering Excellence**
+3. ** Engineering Excellence**
    - 99.7% runtime safety proven
    - 99% functional contracts verified
    - 97.7% assertions proven

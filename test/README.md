@@ -143,7 +143,7 @@ Therefore, we generated custom test vectors using the **same reference implement
 
 ## Validation Status
 
-✅ **Phase 2.9 COMPLETE**
+ **Phase 2.9 COMPLETE**
 - Test vectors generated from reference implementation
 - Test harness created with 5 comprehensive test cases
 - Build system configured

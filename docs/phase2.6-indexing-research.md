@@ -469,11 +469,11 @@ function Map_J1_To_Position (
 
 -- Step 2: y := (reference_area_size * x) >> 32
 -- Need to prove: reference_area_size * x fits in U64
--- Worst case: 131072 * 2^32 = 2^49 < 2^64 ✓
+-- Worst case: 131072 * 2^32 = 2^49 < 2^64 
 
 -- Step 3: z := reference_area_size - 1 - y
 -- Need to prove: y <= reference_area_size - 1
--- Guaranteed by division in Step 2 ✓
+-- Guaranteed by division in Step 2 
 ```
 
 #### 3.2.5 Calculate Absolute Reference Index
@@ -672,7 +672,7 @@ See next section for complete `.ads` file.
 pragma Assert (U64(Reference_Area_Size) * X <= U64'Last);
 -- Proof: Reference_Area_Size <= 131072 = 2^17
 --        X <= 2^32
---        Product <= 2^49 < 2^64 ✓
+--        Product <= 2^49 < 2^64 
 ```
 
 ### Challenge 2: Modulo Wraparound
@@ -692,7 +692,7 @@ pragma Assert (U64(Reference_Area_Size) * X <= U64'Last);
 -- First two blocks are special-cased (filled by Init)
 Starting_Index := (if Pos.Pass = 0 and Pos.Segment = 0 then 2 else 0);
 
--- Thus Index >= 2 in first segment, so reference_area_size >= 1 ✓
+-- Thus Index >= 2 in first segment, so reference_area_size >= 1 
 ```
 
 ### Challenge 4: Address Block Regeneration

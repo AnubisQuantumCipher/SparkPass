@@ -9,12 +9,12 @@
 
 All 5 RFC 9106 test vectors are failing. After comprehensive analysis against the PHC reference implementation (`/tmp/phc-winner-argon2`), I have verified:
 
-✅ Test vectors are correct (verified against reference)
-✅ H0 computation is correct (user-verified)
-✅ High-level algorithm logic is mathematically equivalent to reference
-✅ G function formula is correct
-✅ Fill_Memory XOR logic is correct
-✅ Permutation P index patterns match reference
+ Test vectors are correct (verified against reference)
+ H0 computation is correct (user-verified)
+ High-level algorithm logic is mathematically equivalent to reference
+ G function formula is correct
+ Fill_Memory XOR logic is correct
+ Permutation P index patterns match reference
 
 **Conclusion**: The bug is in a **subtle implementation detail**, not the high-level algorithm.
 
@@ -28,9 +28,9 @@ $ echo -n "password" | ./argon2 "somesaltSOMESALTsomesaltSOMESALT" -id -t 4 -m 1
 dbda37811a190cf4dffda38f6aaeef2f2bb74c675d1c333512790d4d902107a3
 ```
 
-✅ **Matches test vector in test_argon2id_vectors.adb**
+ **Matches test vector in test_argon2id_vectors.adb**
 
-**SparkPass output**: `2f52e70f5ce38914...` ❌ **INCORRECT**
+**SparkPass output**: `2f52e70f5ce38914...`  **INCORRECT**
 
 ---
 
@@ -70,7 +70,7 @@ P(Prev ⊕ Ref) ⊕ Prev ⊕ Ref ⊕ Current
 = (Ref ⊕ Prev ⊕ Current) ⊕ P(Ref ⊕ Prev)  // Reference formula
 ```
 
-✅ **Mathematically equivalent**
+ **Mathematically equivalent**
 
 ### 2. Permutation P Index Patterns
 
@@ -78,7 +78,7 @@ Both SparkPass and reference apply:
 1. First loop: Rows (indices 0-15, 16-31, ..., 112-127)
 2. Second loop: Columns (indices 0,1,16,17,...,112,113; then 2,3,18,19,...,114,115; etc.)
 
-✅ **Index patterns match** (Note: Reference comments are misleading - they say "columns" but mean rows and vice versa)
+ **Index patterns match** (Note: Reference comments are misleading - they say "columns" but mean rows and vice versa)
 
 ### 3. GB/fBlaMka Function
 
@@ -98,14 +98,14 @@ B_Lo := B_Mod and 16#FFFFFFFF#;
 A_Mod := A_Mod + B_Mod + 2 * A_Lo * B_Lo;
 ```
 
-✅ **Identical** (both extract low 32 bits, multiply, add `a + b + 2*xy`)
+ **Identical** (both extract low 32 bits, multiply, add `a + b + 2*xy`)
 
 ### 4. GB Rotation Amounts
 
 Reference: 32, 24, 16, 63
 SparkPass: 32, 24, 16, 63
 
-✅ **Match exactly**
+ **Match exactly**
 
 ### 5. Initial Block Generation
 
@@ -115,7 +115,7 @@ Both generate:
 
 Where H0 is verified correct.
 
-✅ **Logic matches**
+ **Logic matches**
 
 ---
 
@@ -166,7 +166,7 @@ static BLAKE2_INLINE uint64_t load64(const void *src) {
 }
 ```
 
-✅ **Looks correct** - both build little-endian U64 from bytes
+ **Looks correct** - both build little-endian U64 from bytes
 
 #### Location: `/Users/sicarii/SparkPass/src/sparkpass/crypto/sparkpass-crypto-argon2id-finalize.adb`
 
@@ -195,7 +195,7 @@ static BLAKE2_INLINE void store64(void *dst, uint64_t w) {
 }
 ```
 
-✅ **Looks correct** - both write little-endian bytes
+ **Looks correct** - both write little-endian bytes
 
 ### **Priority 2: Array Indexing**
 
@@ -210,7 +210,7 @@ The `Bytes_To_Block` function has:
 Offset := W * 8 + 1;  -- +1 because Bytes is 1-indexed
 ```
 
-✅ **This is correct** - adds 1 to compensate for 1-indexed array
+ **This is correct** - adds 1 to compensate for 1-indexed array
 
 #### Potential Issue: Off-by-one in HPrime
 
@@ -223,7 +223,7 @@ Output (Output'First .. Output'First + 31) := V (1 .. 32);
 Out_Offset := 32;
 ```
 
-✅ **This matches user's fix #4** - copies first 32 bytes of V_1
+ **This matches user's fix #4** - copies first 32 bytes of V_1
 
 ### **Priority 3: Subtle Logic Bugs**
 
@@ -245,7 +245,7 @@ end if;
 End_Index := Active_Blocks_Per_Segment;
 ```
 
-✅ **This matches reference** (ref.c lines 121-134)
+ **This matches reference** (ref.c lines 121-134)
 
 #### Potential Issue: Reference calculation
 
@@ -339,21 +339,21 @@ The ONLY way to find this bug is to:
 
 ## Files Analyzed
 
-✅ `/Users/sicarii/SparkPass/src/sparkpass/crypto/sparkpass-crypto-argon2id-types.ads`
-✅ `/Users/sicarii/SparkPass/src/sparkpass/crypto/sparkpass-crypto-argon2id.adb`
-✅ `/Users/sicarii/SparkPass/src/sparkpass/crypto/sparkpass-crypto-argon2id-h0.adb`
-✅ `/Users/sicarii/SparkPass/src/sparkpass/crypto/sparkpass-crypto-argon2id-hprime.adb`
-✅ `/Users/sicarii/SparkPass/src/sparkpass/crypto/sparkpass-crypto-argon2id-init.adb`
-✅ `/Users/sicarii/SparkPass/src/sparkpass/crypto/sparkpass-crypto-argon2id-fill.adb`
-✅ `/Users/sicarii/SparkPass/src/sparkpass/crypto/sparkpass-crypto-argon2id-index.adb`
-✅ `/Users/sicarii/SparkPass/src/sparkpass/crypto/sparkpass-crypto-argon2id-mix.adb`
-✅ `/Users/sicarii/SparkPass/src/sparkpass/crypto/sparkpass-crypto-argon2id-finalize.adb`
+ `/Users/sicarii/SparkPass/src/sparkpass/crypto/sparkpass-crypto-argon2id-types.ads`
+ `/Users/sicarii/SparkPass/src/sparkpass/crypto/sparkpass-crypto-argon2id.adb`
+ `/Users/sicarii/SparkPass/src/sparkpass/crypto/sparkpass-crypto-argon2id-h0.adb`
+ `/Users/sicarii/SparkPass/src/sparkpass/crypto/sparkpass-crypto-argon2id-hprime.adb`
+ `/Users/sicarii/SparkPass/src/sparkpass/crypto/sparkpass-crypto-argon2id-init.adb`
+ `/Users/sicarii/SparkPass/src/sparkpass/crypto/sparkpass-crypto-argon2id-fill.adb`
+ `/Users/sicarii/SparkPass/src/sparkpass/crypto/sparkpass-crypto-argon2id-index.adb`
+ `/Users/sicarii/SparkPass/src/sparkpass/crypto/sparkpass-crypto-argon2id-mix.adb`
+ `/Users/sicarii/SparkPass/src/sparkpass/crypto/sparkpass-crypto-argon2id-finalize.adb`
 
-✅ `/tmp/phc-winner-argon2/src/core.c`
-✅ `/tmp/phc-winner-argon2/src/ref.c`
-✅ `/tmp/phc-winner-argon2/src/core.h`
-✅ `/tmp/phc-winner-argon2/src/blake2/blamka-round-ref.h`
-✅ `/tmp/phc-winner-argon2/src/blake2/blake2-impl.h`
+ `/tmp/phc-winner-argon2/src/core.c`
+ `/tmp/phc-winner-argon2/src/ref.c`
+ `/tmp/phc-winner-argon2/src/core.h`
+ `/tmp/phc-winner-argon2/src/blake2/blamka-round-ref.h`
+ `/tmp/phc-winner-argon2/src/blake2/blake2-impl.h`
 
 ---
 

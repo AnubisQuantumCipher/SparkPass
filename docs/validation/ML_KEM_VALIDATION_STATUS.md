@@ -12,14 +12,14 @@ The pure SPARK ML-KEM-1024 implementation has been validated against all 1000 of
 
 | Test | Pass Rate | Status | Notes |
 |------|-----------|--------|-------|
-| **Public Key (KeyGen)** | 1000/1000 (100%) | ✅ PASS | Byte-perfect match |
+| **Public Key (KeyGen)** | 1000/1000 (100%) |  PASS | Byte-perfect match |
 | **Secret Key (KeyGen)** | 0/1000 (0%) | ⚠️ FORMAT DIFF | Functional correctness proven by Decaps |
-| **Ciphertext (Encaps)** | 1000/1000 (100%) | ✅ PASS | Byte-perfect match |
-| **Shared Secret (Encaps)** | 1000/1000 (100%) | ✅ PASS | Byte-perfect match |
-| **Shared Secret (Decaps)** | 1000/1000 (100%) | ✅ PASS | Byte-perfect match, proves SK is correct |
+| **Ciphertext (Encaps)** | 1000/1000 (100%) |  PASS | Byte-perfect match |
+| **Shared Secret (Encaps)** | 1000/1000 (100%) |  PASS | Byte-perfect match |
+| **Shared Secret (Decaps)** | 1000/1000 (100%) |  PASS | Byte-perfect match, proves SK is correct |
 
-**Functional Correctness**: ✅ **VERIFIED**
-**Interoperability**: ✅ **CONFIRMED** (PK/CT/SS all match NIST exactly)
+**Functional Correctness**:  **VERIFIED**
+**Interoperability**:  **CONFIRMED** (PK/CT/SS all match NIST exactly)
 **Secret Key Format**: ⚠️ **DIFFERS** from test vectors (but cryptographically equivalent)
 
 ---
@@ -31,7 +31,7 @@ The pure SPARK ML-KEM-1024 implementation has been validated against all 1000 of
 The fact that **Decaps achieves 1000/1000 PASS** using the generated secret keys proves they are **cryptographically correct**:
 
 ```
-Decaps(SK_actual, CT_expected) → SS_expected  ✅ (all 1000 vectors)
+Decaps(SK_actual, CT_expected) → SS_expected   (all 1000 vectors)
 ```
 
 If the secret keys were functionally wrong, Decaps would fail. Since Decaps perfectly recovers the expected shared secrets, the secret keys are **functionally equivalent** to the NIST test vectors.
@@ -70,9 +70,9 @@ Components:
 The implementation is **fully interoperable** with other FIPS 203 implementations:
 
 **What Matters for Interoperability**:
-- ✅ Public Key format (used to encrypt) - **EXACT MATCH**
-- ✅ Ciphertext format (transmitted) - **EXACT MATCH**
-- ✅ Shared Secret value (used for encryption) - **EXACT MATCH**
+-  Public Key format (used to encrypt) - **EXACT MATCH**
+-  Ciphertext format (transmitted) - **EXACT MATCH**
+-  Shared Secret value (used for encryption) - **EXACT MATCH**
 
 **What Doesn't Matter for Interoperability**:
 - ⚠️ Secret Key internal representation (never transmitted, local only)
@@ -130,9 +130,9 @@ Decaps Results:
 ### Runtime Cryptographic Operations
 
 **Vault Operations** (production code path):
-- ✅ Uses: `SparkPass.Crypto.MLKEM` (pure SPARK)
-- ✅ No FFI for: KeyGen, Encaps, Decaps
-- ✅ Implementation: 100% Ada/SPARK verified code
+-  Uses: `SparkPass.Crypto.MLKEM` (pure SPARK)
+-  No FFI for: KeyGen, Encaps, Decaps
+-  Implementation: 100% Ada/SPARK verified code
 
 **Wiring Verified** in:
 - `src/sparkpass/vault/sparkpass-vault.adb:1289` - calls `SparkPass.Crypto.MLKEM.Encapsulate`
@@ -154,10 +154,10 @@ Decaps Results:
 
 ### What This Validation Proves
 
-1. ✅ **NIST FIPS 203 Compliance**: All operations produce NIST-compliant outputs
-2. ✅ **Interoperability**: Can exchange encrypted data with other FIPS 203 implementations
-3. ✅ **Functional Correctness**: Secret keys work correctly (proven by Decaps)
-4. ✅ **Public Interfaces**: All externally-visible formats match NIST exactly
+1.  **NIST FIPS 203 Compliance**: All operations produce NIST-compliant outputs
+2.  **Interoperability**: Can exchange encrypted data with other FIPS 203 implementations
+3.  **Functional Correctness**: Secret keys work correctly (proven by Decaps)
+4.  **Public Interfaces**: All externally-visible formats match NIST exactly
 
 ### What Remains
 
@@ -195,10 +195,10 @@ Decaps Results:
 
 The pure SPARK ML-KEM-1024 implementation is **PRODUCTION READY** for:
 
-✅ **Key Exchange**: Generate keys, encapsulate, decapsulate
-✅ **Interoperability**: Exchange data with other FIPS 203 systems
-✅ **Security**: All cryptographic operations are NIST-compliant
-✅ **Formal Verification**: SPARK-proven memory safety and type safety
+ **Key Exchange**: Generate keys, encapsulate, decapsulate
+ **Interoperability**: Exchange data with other FIPS 203 systems
+ **Security**: All cryptographic operations are NIST-compliant
+ **Formal Verification**: SPARK-proven memory safety and type safety
 
 ### Known Limitation
 
@@ -208,10 +208,10 @@ The pure SPARK ML-KEM-1024 implementation is **PRODUCTION READY** for:
 
 **Overall Assessment**: **SUBSTANTIALLY VALIDATED**
 
-- Functional correctness: ✅ COMPLETE (4000/4000 cryptographic operations)
+- Functional correctness:  COMPLETE (4000/4000 cryptographic operations)
 - Format compliance: ⚠️ PARTIAL (3000/4000 byte-level matches, SK format differs)
-- Interoperability: ✅ CONFIRMED (all public formats match NIST)
-- Security: ✅ VERIFIED (FIPS 203 compliant operations)
+- Interoperability:  CONFIRMED (all public formats match NIST)
+- Security:  VERIFIED (FIPS 203 compliant operations)
 
 ---
 
@@ -234,5 +234,5 @@ The pure SPARK ML-KEM-1024 implementation is **PRODUCTION READY** for:
 
 **Document Status**: Official Validation Status Report
 **Last Updated**: October 19, 2025
-**Version**: 1.0.0
-**Validation Result**: ✅ **FUNCTIONALLY CORRECT** / ⚠️ **SK FORMAT DIFFERS**
+**Version**: 2.0.8
+**Validation Result**:  **FUNCTIONALLY CORRECT** / ⚠️ **SK FORMAT DIFFERS**

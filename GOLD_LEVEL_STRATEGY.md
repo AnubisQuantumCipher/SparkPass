@@ -120,8 +120,8 @@ Instead of keeping assertions SMT can't verify, REMOVE them and add documentatio
 --  ζ^512 ≡ 1 (mod 3329) and ζ^256 ≡ -1 (mod 3329)
 --
 --  Runtime verification: test/test_mlkem_ntt_roundtrip.adb verifies:
---    Mod_Exp(17, 256) = 3328 = Q - 1 ✓
---    Mod_Exp(17, 512) = 1 ✓
+--    Mod_Exp(17, 256) = 3328 = Q - 1 
+--    Mod_Exp(17, 512) = 1 
 --
 --  SMT solvers cannot verify modular exponentiation results, so we
 --  remove the postcondition and rely on runtime verification.
@@ -188,11 +188,11 @@ The 2,635 VCs include ALL SparkNaCl and other dependencies. The NTT proof packag
 
 **Execution:**
 
-1. ✅ Fix 3 overflow checks → reduce to 1 overflow VC
-2. ✅ Fix 2 Mod_Inv VCs → prove Extended Euclidean correctness
-3. ✅ Fix 2 implementation bridge VCs → connect FFT to DFT
-4. ✅ Document 8 axiomatic VCs with runtime verification evidence
-5. ✅ Create "Axiomatic Properties Report" showing runtime test results
+1.  Fix 3 overflow checks → reduce to 1 overflow VC
+2.  Fix 2 Mod_Inv VCs → prove Extended Euclidean correctness
+3.  Fix 2 implementation bridge VCs → connect FFT to DFT
+4.  Document 8 axiomatic VCs with runtime verification evidence
+5.  Create "Axiomatic Properties Report" showing runtime test results
 
 **Result:**
 - **Provable VCs:** 2,626 VCs (after removing axiomatic postconditions)

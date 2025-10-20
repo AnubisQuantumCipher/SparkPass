@@ -126,7 +126,7 @@ begin
   -- INTT[j] = (1/n) × Σ(k) [Σ(i) poly[i] × ζ^(2ik)] × ζ^(-2jk)
   --         = (1/n) × Σ(i) poly[i] × [Σ(k) ζ^(2k(i-j))]
   --         = (1/n) × Σ(i) poly[i] × [n × δ(i,j)]     [by orthogonality]
-  --         = poly[j]  ✓
+  --         = poly[j]  
 
   pragma Assert (INTT_Result = INTT_Definition(NTT_Poly, J));
   pragma Assert (INTT_Result = Original(J));
@@ -227,7 +227,7 @@ end Mod_Inv;
 gnatmake -c src/sparkpass/crypto/sparkpass-crypto-mlkem-ntt-proofs.adb
 ```
 
-**Result:** ✅ **SUCCESS** - Compiles without errors
+**Result:**  **SUCCESS** - Compiles without errors
 
 ---
 
@@ -235,9 +235,9 @@ gnatmake -c src/sparkpass/crypto/sparkpass-crypto-mlkem-ntt-proofs.adb
 
 ### Phase 1: Automatic Proof (Expected)
 **Lemmas that should prove automatically:**
-- ✅ `Lemma_Zeta_Primitive_Root` - concrete arithmetic
-- ✅ `Lemma_N_Inverse_Correct` - concrete arithmetic
-- ✅ `Lemma_Orthogonality_One` - when diff = 0
+-  `Lemma_Zeta_Primitive_Root` - concrete arithmetic
+-  `Lemma_N_Inverse_Correct` - concrete arithmetic
+-  `Lemma_Orthogonality_One` - when diff = 0
 
 ### Phase 2: Ghost Assertions (2-3 weeks)
 **Lemmas needing guidance:**
@@ -248,8 +248,8 @@ gnatmake -c src/sparkpass/crypto/sparkpass-crypto-mlkem-ntt-proofs.adb
 
 ### Phase 3: Loop Invariants (2-4 weeks)
 **Bridge lemmas requiring NTT implementation invariants:**
-- ❌ `Lemma_NTT_Implementation_Correct` - prove FFT matches DFT
-- ❌ `Lemma_INTT_Implementation_Correct` - prove inverse FFT
+-  `Lemma_NTT_Implementation_Correct` - prove FFT matches DFT
+-  `Lemma_INTT_Implementation_Correct` - prove inverse FFT
 
 **Approach:** Add loop invariants to `sparkpass-crypto-mlkem-ntt.adb`
 
@@ -257,7 +257,7 @@ gnatmake -c src/sparkpass/crypto/sparkpass-crypto-mlkem-ntt-proofs.adb
 
 ## Comparison to Previous Approach
 
-### ❌ REJECTED: Using pragma Assume
+###  REJECTED: Using pragma Assume
 ```ada
 pragma Assume (Poly_Equal(RoundTrip, Original),
                "NTT round-trip requires Coq for formal proof");
@@ -265,7 +265,7 @@ pragma Assume (Poly_Equal(RoundTrip, Original),
 
 **Problem:** This just assumes the property without proving it
 
-### ✅ APPROVED: Pure SPARK Mathematical Proof
+###  APPROVED: Pure SPARK Mathematical Proof
 ```ada
 -- Compute ζ^256 and verify it equals -1 mod Q
 Zeta_256 := Mod_Exp(17, 256);
@@ -283,8 +283,8 @@ pragma Assert ((Sum * 3303) mod Q = 0);  -- Proven algebraically!
 ## Next Steps
 
 ### Immediate (This Week)
-1. ✅ Proof infrastructure complete
-2. ✅ Compiles successfully
+1.  Proof infrastructure complete
+2.  Compiles successfully
 3. ⏳ Run GNATprove verification (next task)
 
 ### Short-Term (2-4 Weeks)
@@ -307,10 +307,10 @@ pragma Assert ((Sum * 3303) mod Q = 0);  -- Proven algebraically!
 ## Benefits of This Approach
 
 ### 1. No External Dependencies
-- ✅ Pure SPARK ghost code
-- ✅ No Coq required
-- ✅ No interactive theorem prover
-- ✅ Standard Ada/SPARK toolchain
+-  Pure SPARK ghost code
+-  No Coq required
+-  No interactive theorem prover
+-  Standard Ada/SPARK toolchain
 
 ### 2. Faster Development
 - **Pure SPARK:** 8-14 weeks total
@@ -360,15 +360,15 @@ alr exec -- gnatprove -P sparkpass.gpr --mode=prove --level=4 \
 ## Current Verification Level
 
 **SparkPass Overall:**
-- **Bronze:** ✅ Complete (initialization, data flow)
-- **Silver:** ✅ Complete (memory safety, 99.49% proven)
+- **Bronze:**  Complete (initialization, data flow)
+- **Silver:**  Complete (memory safety, 99.49% proven)
 - **Gold:** ⚠️ In Progress (key integrity properties)
-- **Platinum:** ❌ Not Yet (full functional correctness)
+- **Platinum:**  Not Yet (full functional correctness)
 
 **NTT Proof Infrastructure:**
-- **Specifications:** ✅ 100% complete
-- **Ghost functions:** ✅ 100% complete
-- **Easy lemmas:** ✅ 100% complete (expect automatic proof)
+- **Specifications:**  100% complete
+- **Ghost functions:**  100% complete
+- **Easy lemmas:**  100% complete (expect automatic proof)
 - **Medium lemmas:** ⚠️ 80% complete (need assertions)
 - **Hard lemmas:** ⏳ 40% complete (need NTT invariants)
 
@@ -387,10 +387,10 @@ alr exec -- gnatprove -P sparkpass.gpr --mode=prove --level=4 \
 
 SparkPass now has a **complete formal proof infrastructure** for NTT/INTT correctness using pure SPARK ghost code. This approach:
 
-- ✅ Avoids `pragma Assume` (properties are proven, not assumed)
-- ✅ Avoids Coq dependency (uses SPARK native capabilities)
-- ✅ Compiles successfully (ready for GNATprove verification)
-- ✅ Provides systematic methodology (applicable to all crypto algorithms)
+-  Avoids `pragma Assume` (properties are proven, not assumed)
+-  Avoids Coq dependency (uses SPARK native capabilities)
+-  Compiles successfully (ready for GNATprove verification)
+-  Provides systematic methodology (applicable to all crypto algorithms)
 
 **Total implementation:** 830 lines of formal proof code
 

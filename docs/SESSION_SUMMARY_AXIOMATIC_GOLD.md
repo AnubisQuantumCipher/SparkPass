@@ -8,18 +8,18 @@
 
 ## Session Objectives (Achieved)
 
-### 1. Understand GNATprove Optimization ✅
+### 1. Understand GNATprove Optimization 
 - Confirmed native arm64 setup via Alire
 - Identified `-j16` flag for M4's 16-core CPU
 - Recommended optimal proof commands
 
-### 2. Implement Axiomatic Specification ✅
+### 2. Implement Axiomatic Specification 
 - Designed complete approach (following SPARKNaCl)
 - Implemented round-trip property verification
 - Code compiles successfully
 - Flow analysis passes
 
-### 3. Document Approach ✅
+### 3. Document Approach 
 - Created design document
 - Created implementation documentation
 - Explained why axiomatic > DFT equivalence
@@ -73,7 +73,7 @@ procedure Verify_NTT_Roundtrip_Property (P : in out Polynomial) with
 
 ## Verification Status
 
-### Flow Analysis: ✅ PASSED
+### Flow Analysis:  PASSED
 ```
 info: data dependencies proved
 info: implicit aspect Always_Terminates proved
@@ -101,8 +101,8 @@ gnatprove -P sparkpass.gpr --mode=prove --level=3 \
 - Foundation is solid, just needs SMT guidance
 
 **Current Project Status (Pre-Verification):**
-- ✅ Bronze: Flow analysis (100%)
-- ✅ Silver: Memory safety (73% overall, higher in NTT)
+-  Bronze: Flow analysis (100%)
+-  Silver: Memory safety (73% overall, higher in NTT)
 - → Gold: Functional correctness (axiomatic foundation ready)
 
 ---
@@ -163,7 +163,7 @@ end;
 
 ## GNATprove Optimization for M4 Mac
 
-### Current Setup ✅
+### Current Setup 
 - Native arm64 toolchain via Alire
 - Multiple provers (cvc5, z3, altergo)
 - Appropriate timeout values
@@ -220,10 +220,10 @@ Whether full automatic proof succeeds or not:
 ## Honest Assessment
 
 ### What We Know We've Achieved
-✅ Silver+ verification (memory safety)
-✅ Axiomatic specification foundation
-✅ Industry-proven approach implemented
-✅ Clean code that compiles
+ Silver+ verification (memory safety)
+ Axiomatic specification foundation
+ Industry-proven approach implemented
+ Clean code that compiles
 
 ### What We're Testing
 → Can SMT prove round-trip property automatically?
@@ -245,9 +245,9 @@ Whether full automatic proof succeeds or not:
 
 ### Cryptographic Correctness
 ML-KEM (FIPS 203) only requires:
-1. ✅ NTT/INTT preserve bounds
+1.  NTT/INTT preserve bounds
 2. → NTT/INTT are inverses (our axiomatic property)
-3. ✅ Memory safety
+3.  Memory safety
 
 **Our approach proves exactly what's needed.**
 
@@ -319,4 +319,4 @@ Successfully implemented a practical, industry-proven approach to Gold Level ver
 
 ---
 
-**Session End Status:** Implementation ✅ | Verification 🔄 | Documentation ✅
+**Session End Status:** Implementation  | Verification 🔄 | Documentation 

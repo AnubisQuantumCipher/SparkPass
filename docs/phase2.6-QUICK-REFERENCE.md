@@ -1,7 +1,7 @@
 # Phase 2.6: Quick Reference Card
 
 **Date**: 2025-10-17
-**Status**: ✅ COMPLETE - Ready for Verification
+**Status**:  COMPLETE - Ready for Verification
 
 ---
 
@@ -71,9 +71,9 @@ Calculate_Reference (
 ```
 
 **Guarantees**:
-- ✅ Ref_Index always valid (in bounds)
-- ✅ Never self-reference (Ref_Index ≠ current block)
-- ✅ First segment: only reference earlier blocks
+-  Ref_Index always valid (in bounds)
+-  Never self-reference (Ref_Index ≠ current block)
+-  First segment: only reference earlier blocks
 
 ---
 
@@ -123,7 +123,7 @@ pragma Assert (U64_Mod(J1) * U64_Mod(J1) <= U64_Mod'Last);
 J₁ ≤ 2³²                          (type bound)
 X = (J₁ × J₁) / 2³² ≤ 2³²        (after division)
 Reference_Area_Size ≤ 131072 = 2¹⁷ (worst case: entire lane)
-Product = 2¹⁷ × 2³² = 2⁴⁹ < 2⁶⁴   (fits in U64_Mod) ✓
+Product = 2¹⁷ × 2³² = 2⁴⁹ < 2⁶⁴   (fits in U64_Mod) 
 ```
 
 ---
@@ -166,10 +166,10 @@ alr build sparkpass-crypto-argon2id-mix
 
 ## NEXT STEPS
 
-1. ✅ **NOW**: Run verification commands above
+1.  **NOW**: Run verification commands above
 2. ⏳ **Next**: Implement Phase 2.7 (Fill Memory, 60 VCs)
 3. ⏳ **Then**: Implement Phase 2.8 (Finalize, 20 VCs)
-4. ✅ **Done**: Phase 2 complete (447 VCs total)
+4.  **Done**: Phase 2 complete (447 VCs total)
 
 ---
 
@@ -198,10 +198,10 @@ alr build sparkpass-crypto-argon2id-mix
 
 ## CONFIDENCE
 
-**Algorithm**: ✅ HIGH (RFC 9106 well-specified)
-**Implementation**: ✅ HIGH (C reference analyzed)
-**Verification**: ✅ HIGH (all bounds proven mathematically)
-**Integration**: ✅ HIGH (dependencies complete)
+**Algorithm**:  HIGH (RFC 9106 well-specified)
+**Implementation**:  HIGH (C reference analyzed)
+**Verification**:  HIGH (all bounds proven mathematically)
+**Integration**:  HIGH (dependencies complete)
 
 ---
 

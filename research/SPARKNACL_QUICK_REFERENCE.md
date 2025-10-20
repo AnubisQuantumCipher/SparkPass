@@ -26,7 +26,7 @@
 
 | **Module** | **Purpose** | **Phase** |
 |-----------|-------------|-----------|
-| `sparknacl-secretbox.ads` | ChaCha20-Poly1305 AEAD | **Phase 0** ✅ |
+| `sparknacl-secretbox.ads` | ChaCha20-Poly1305 AEAD | **Phase 0**  |
 | `sparknacl-hashing-sha512.ads` | SHA-512 hash | Phase 1 (Blake2b template) |
 | `sparknacl-hashing-sha256.ads` | SHA-256 hash | Reference |
 | `sparknacl-hkdf.ads` | HKDF key derivation | Already using similar |
@@ -155,7 +155,7 @@ Open(Plaintext, C_with_Tag, Nonce_24, Key, Status);
 
 ---
 
-## ✅ Phase 0 Implementation Checklist
+##  Phase 0 Implementation Checklist
 
 ### Step 1: Create Adapter Package Spec
 
@@ -248,10 +248,10 @@ gnatprove -P sparkpass.gpr -u sparkpass-crypto-chacha20poly1305 --level=2
 ### Verification Status
 
 SPARKNaCl is **100% SPARK-verified** with:
-- ✅ Memory safety (no buffer overflows)
-- ✅ Type safety (no range violations)
-- ✅ Functional correctness (some properties)
-- ✅ Constant-time operations (timing-attack resistant)
+-  Memory safety (no buffer overflows)
+-  Type safety (no range violations)
+-  Functional correctness (some properties)
+-  Constant-time operations (timing-attack resistant)
 
 **References**:
 - GitHub: https://github.com/rod-chapman/SPARKNaCl
@@ -269,7 +269,7 @@ SPARKNaCl is **100% SPARK-verified** with:
 
 **Total Phase 0 Time**: 1-2 days
 
-**Success Criteria**: 20-25 new VCs, 100% proven ✅
+**Success Criteria**: 20-25 new VCs, 100% proven 
 
 ---
 

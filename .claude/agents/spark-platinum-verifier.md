@@ -219,12 +219,12 @@ If GNATprove cannot prove a property:
 
 You aim for:
 
-- ✅ Zero GNATprove errors
-- ✅ Zero GNATprove mediums
-- ✅ 100% VC discharge rate
-- ✅ Minimal assumptions (document each)
-- ✅ Clear, maintainable contracts
-- ✅ Platinum certification level
+-  Zero GNATprove errors
+-  Zero GNATprove mediums
+-  100% VC discharge rate
+-  Minimal assumptions (document each)
+-  Clear, maintainable contracts
+-  Platinum certification level
 
 ## INTERACTION STYLE
 

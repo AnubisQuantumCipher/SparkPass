@@ -4,18 +4,18 @@
 
 **ROOT CAUSE**: Test vectors in `test/test_blake2b_vectors.adb` were incorrect, not a bug in the Blake2b implementation.
 
-**STATUS**: ✅ **FIXED** - All test vectors corrected and verified against `b2sum` and Python hashlib.
+**STATUS**:  **FIXED** - All test vectors corrected and verified against `b2sum` and Python hashlib.
 
 ## Problem Description
 
 Tests were failing for messages containing zero bytes:
-- ❌ One-byte zero (0x00): FAIL (diverged at byte 27)
-- ❌ 128-byte zeros: FAIL
-- ❌ 256-byte zeros: FAIL
+-  One-byte zero (0x00): FAIL (diverged at byte 27)
+-  128-byte zeros: FAIL
+-  256-byte zeros: FAIL
 
 While non-zero messages passed:
-- ✅ Empty message (0 bytes): PASS
-- ✅ "abc" message (3 bytes): PASS
+-  Empty message (0 bytes): PASS
+-  "abc" message (3 bytes): PASS
 
 ## Investigation Process
 
@@ -26,13 +26,13 @@ The bug appeared to be related to how zero bytes were processed in the compressi
 3. All-zero messages failed
 
 ### Code Analysis Performed
-1. ✅ Verified little-endian byte packing (LE_Pack/LE_Unpack)
-2. ✅ Verified Sigma permutation table against RFC 7693
-3. ✅ Verified counter calculations for intermediate and final blocks
-4. ✅ Verified state initialization with parameter block (0x01010040)
-5. ✅ Verified work vector initialization from State and IV
-6. ✅ Verified G function implements RFC 7693 Section 3.1
-7. ✅ Verified finalization XOR pattern
+1.  Verified little-endian byte packing (LE_Pack/LE_Unpack)
+2.  Verified Sigma permutation table against RFC 7693
+3.  Verified counter calculations for intermediate and final blocks
+4.  Verified state initialization with parameter block (0x01010040)
+5.  Verified work vector initialization from State and IV
+6.  Verified G function implements RFC 7693 Section 3.1
+7.  Verified finalization XOR pattern
 
 **Result**: Implementation is **CORRECT** per RFC 7693 specification.
 
@@ -120,7 +120,7 @@ dd if=/dev/zero bs=1 count=128 | b2sum  # 128 zeros
 dd if=/dev/zero bs=1 count=256 | b2sum  # 256 zeros
 ```
 
-✅ All match corrected test vectors
+ All match corrected test vectors
 
 ### 2. Python hashlib
 ```python
@@ -132,17 +132,17 @@ hashlib.blake2b(b'\x00' * 128, digest_size=64).hexdigest()
 hashlib.blake2b(b'\x00' * 256, digest_size=64).hexdigest()
 ```
 
-✅ All match corrected test vectors
+ All match corrected test vectors
 
 ## Test Results
 
 | Test Case | Status | Hash (first 32 bytes) |
 |-----------|--------|------------------------|
-| Empty (0 bytes) | ✅ PASS | `786a02f742015903c6c6fd852552d272...` |
-| "abc" (3 bytes) | ✅ PASS | `ba80a53f981c4d0d6a2797b69f12f6e9...` |
-| One zero (1 byte) | ✅ PASS | `2fa3f686df876995167e7c2e5d74c4c7...` |
-| 128 zeros | ✅ PASS | `865939e120e6805438478841afb739ae...` |
-| 256 zeros | ✅ PASS | `ec9c6b301a6c98946d742a74710e658f...` |
+| Empty (0 bytes) |  PASS | `786a02f742015903c6c6fd852552d272...` |
+| "abc" (3 bytes) |  PASS | `ba80a53f981c4d0d6a2797b69f12f6e9...` |
+| One zero (1 byte) |  PASS | `2fa3f686df876995167e7c2e5d74c4c7...` |
+| 128 zeros |  PASS | `865939e120e6805438478841afb739ae...` |
+| 256 zeros |  PASS | `ec9c6b301a6c98946d742a74710e658f...` |
 
 ## Conclusion
 
@@ -167,18 +167,18 @@ All test vectors have been corrected and verified against authoritative sources.
 **NONE** - The implementation was always correct. Only test vectors were wrong.
 
 The Blake2b implementation can be used with confidence for:
-- ✅ Argon2id password hashing
-- ✅ HMAC-Blake2b
-- ✅ General-purpose cryptographic hashing
+-  Argon2id password hashing
+-  HMAC-Blake2b
+-  General-purpose cryptographic hashing
 
 ## Next Steps
 
-1. ✅ Rebuild tests: `alr exec -- gprbuild -P test_blake2b.gpr`
-2. ✅ Run verification: `./bin/test_blake2b_vectors`
-3. ✅ Confirm all 5 test cases pass
+1.  Rebuild tests: `alr exec -- gprbuild -P test_blake2b.gpr`
+2.  Run verification: `./bin/test_blake2b_vectors`
+3.  Confirm all 5 test cases pass
 4. Continue with SparkPass integration
 
 ---
 
 **Date**: 2025-10-17
-**Status**: ✅ RESOLVED - No implementation bugs found
+**Status**:  RESOLVED - No implementation bugs found

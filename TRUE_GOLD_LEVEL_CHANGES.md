@@ -24,9 +24,9 @@ procedure NTT (Poly : in out Polynomial) with
 ## Why We Can Do This NOW
 
 We ALREADY have the mathematical specifications in our proof package:
-- ✅ `NTT_Definition` (ghost function) - lines 182-187 of sparkpass-crypto-mlkem-ntt-proofs.ads
-- ✅ `INTT_Definition` (ghost function) - lines 196-201 of sparkpass-crypto-mlkem-ntt-proofs.ads
-- ✅ `Theorem_NTT_Roundtrip_Correct` - PROVEN (11/11 VCs)
+-  `NTT_Definition` (ghost function) - lines 182-187 of sparkpass-crypto-mlkem-ntt-proofs.ads
+-  `INTT_Definition` (ghost function) - lines 196-201 of sparkpass-crypto-mlkem-ntt-proofs.ads
+-  `Theorem_NTT_Roundtrip_Correct` - PROVEN (11/11 VCs)
 
 We just need to USE these in the actual NTT/INTT procedure contracts!
 
@@ -97,19 +97,19 @@ procedure NTT_Roundtrip_Proof (Original : Polynomial) with
 
 ## Why This Achieves Gold Level
 
-### 1. Functional Correctness ✓
+### 1. Functional Correctness 
 Now we prove WHAT the code does, not just that it's safe:
 - NTT produces evaluations at roots of unity
 - INTT inverts the NTT
 - Round-trip preserves input
 
-### 2. Algorithm Correctness ✓
+### 2. Algorithm Correctness 
 We connect implementation to mathematical specification:
 - Implementation uses Cooley-Tukey FFT
 - Specification uses direct DFT computation
 - Postcondition proves they're equivalent
 
-### 3. From Comments to Contracts ✓
+### 3. From Comments to Contracts 
 **Before:**
 ```ada
 --  **SPARK Verification Strategy**:
@@ -141,7 +141,7 @@ Post => (for all I => INTT(NTT(Original))(I) = Original(I))  ← CONTRACT
 ### Why This Should Work
 
 We already PROVED these properties in our proof package:
-- `Theorem_NTT_Roundtrip_Correct`: 11/11 VCs proven ✓
+- `Theorem_NTT_Roundtrip_Correct`: 11/11 VCs proven 
 - `Lemma_NTT_Implementation_Correct`: Connects FFT to DFT
 - `Lemma_INTT_Implementation_Correct`: Connects inverse FFT to inverse DFT
 
@@ -151,12 +151,12 @@ By adding these as postconditions, GNATprove should automatically use our existi
 
 ## Implementation Steps
 
-1. ✅ **Add `with` clause** for Proofs package
-2. ✅ **Update NTT postcondition** to include `NTT_Definition`
-3. ✅ **Update INTT postcondition** to include `INTT_Definition`
-4. ✅ **Add `NTT_Roundtrip_Proof`** ghost procedure
-5. ✅ **Compile** to check syntax
-6. ✅ **Run GNATprove** to verify
+1.  **Add `with` clause** for Proofs package
+2.  **Update NTT postcondition** to include `NTT_Definition`
+3.  **Update INTT postcondition** to include `INTT_Definition`
+4.  **Add `NTT_Roundtrip_Proof`** ghost procedure
+5.  **Compile** to check syntax
+6.  **Run GNATprove** to verify
 
 ---
 
@@ -186,10 +186,10 @@ This is like writing a PhD thesis on how an algorithm works, but never putting i
 - Verify Gold Level achievement
 
 **Success Criteria:**
-- ✅ 99%+ proof rate
-- ✅ Functional correctness postconditions
-- ✅ Algorithm correctness proven
-- ✅ TRUE GOLD LEVEL
+-  99%+ proof rate
+-  Functional correctness postconditions
+-  Algorithm correctness proven
+-  TRUE GOLD LEVEL
 
 ---
 

@@ -71,7 +71,7 @@ end loop;
 pragma Loop_Invariant (Zeta_Index >= 1 and Zeta_Index <= 127);
 ```
 
-**Result:** ❌ FAILED
+**Result:**  FAILED
 - Broke 2 additional proofs (NTT: 53/54 → 52/54)
 - Cannot prove loop invariant preservation after increment:
   - `Zeta_Index := 127; Zeta_Index + 1 = 128`
@@ -160,7 +160,7 @@ Zeta := Zeta_BitRev(Zeta_Index);
 
 **Proof:**
 
-1. **Initialization:** `Zeta_Index = 1` ✓
+1. **Initialization:** `Zeta_Index = 1` 
 
 2. **Invariant:** `Zeta_Index ≤ 127 + (256 - Start) / (2 × Len)`
 
@@ -169,12 +169,12 @@ Zeta := Zeta_BitRev(Zeta_Index);
    - When `Start = 0`: `Zeta_Index ≤ 127 + 256/(2×Len) = 127 + 128/Len`
 
 4. **Maximum Zeta_Index Before Increment:**
-   - At `Len = 2`, `Start = 254`: `Zeta_Index ≤ 127 + 2/4 = 127` ✓
+   - At `Len = 2`, `Start = 254`: `Zeta_Index ≤ 127 + 2/4 = 127` 
 
 5. **After 127 Uses:**
    - `Zeta_Index = 128`
    - Loop condition `Start < 256` becomes false
-   - No more iterations → Zeta_Index never exceeds 128 ✓
+   - No more iterations → Zeta_Index never exceeds 128 
 
 **QED:** The algorithm is correct; the assertion was overly restrictive.
 

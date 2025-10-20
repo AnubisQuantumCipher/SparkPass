@@ -32,7 +32,7 @@ Instead of proving **implementation matches specification**, prove **algebraic p
 
 ## Key Axiomatic Properties
 
-### Property 1: Round-Trip Identity ✓
+### Property 1: Round-Trip Identity 
 **Mathematical Statement:**
 ```
 INTT(NTT(x)) = x  for all polynomials x
@@ -48,7 +48,7 @@ INTT(NTT(x)) = x  for all polynomials x
 - No need to understand FFT algorithm
 - SMT can verify local transformations compose correctly
 
-### Property 2: Bounds Preservation ✓
+### Property 2: Bounds Preservation 
 **Mathematical Statement:**
 ```
 NTT:  input in [0, Q-1]^256  →  output in [0, Q-1]^256
@@ -198,7 +198,7 @@ end Prove_Roundtrip_Property;
 ## Verification Timeline
 
 ### Phase 1: Foundation (1-2 days)
-1. Add `Is_Inverse_Transform` function ✓
+1. Add `Is_Inverse_Transform` function 
 2. Add `NTT_Then_INTT` ghost procedure
 3. Basic compilation and syntax checking
 
@@ -225,17 +225,17 @@ end Prove_Roundtrip_Property;
 ## Expected Verification Results
 
 ### Achievable (High Confidence)
-✅ Memory safety (already proven)
-✅ Bounds checking (already proven)
-✅ Round-trip property (provable via composition)
-✅ Flow correctness (already proven)
+ Memory safety (already proven)
+ Bounds checking (already proven)
+ Round-trip property (provable via composition)
+ Flow correctness (already proven)
 
 ### Stretch Goals (Medium Confidence)
 ⚠️ Linearity property
 ⚠️ Zeta_Index assertions (minor invariant tweaks)
 
 ### Not Attempting (Requires Manual Proofs)
-❌ FFT ≡ DFT equivalence (would need Coq/Isabelle)
+ FFT ≡ DFT equivalence (would need Coq/Isabelle)
 
 ---
 
@@ -245,10 +245,10 @@ end Prove_Roundtrip_Property;
 **Definition:** Functional correctness properties proven automatically
 
 **Our Achievement:**
-- ✅ Bounds preservation proven
-- ✅ Round-trip property proven
-- ✅ Composition correctness proven
-- ✅ Memory safety proven
+-  Bounds preservation proven
+-  Round-trip property proven
+-  Composition correctness proven
+-  Memory safety proven
 
 **Accurate Description:**
 > "SparkPass achieves Gold Level functional correctness through axiomatic
@@ -295,7 +295,7 @@ end Prove_Roundtrip_Property;
 
 ## Next Steps
 
-1. ✅ Design axiomatic specification (this document)
+1.  Design axiomatic specification (this document)
 2. → Implement `Is_Inverse_Transform` function
 3. → Update NTT/INTT contracts
 4. → Add round-trip ghost procedure

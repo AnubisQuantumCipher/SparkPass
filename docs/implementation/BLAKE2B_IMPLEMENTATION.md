@@ -299,7 +299,7 @@ alr exec -- gnatmake test/test_blake2b_vectors.adb -o bin/test_blake2b_vectors
 
 ### 4.3 Testing Status
 
-**Compilation**: ✅ SUCCESS
+**Compilation**:  SUCCESS
 - Blake2b implementation compiles without errors
 - Test harness compiles successfully
 - Only style warnings (postcondition completeness)
@@ -339,23 +339,23 @@ alr exec -- gnatmake test/test_blake2b_vectors.adb -o bin/test_blake2b_vectors
 
 **Breakdown**:
 1. G function: 15 VCs
-   - Index range checks: 8 VCs ✅ (preconditions ensure)
-   - Arithmetic overflow: 4 VCs ✅ (wrapping semantics)
-   - Postcondition: 1 VC ✅
-   - Aliasing prevention: 2 VCs ✅ (distinct index precondition)
+   - Index range checks: 8 VCs  (preconditions ensure)
+   - Arithmetic overflow: 4 VCs  (wrapping semantics)
+   - Postcondition: 1 VC 
+   - Aliasing prevention: 2 VCs  (distinct index precondition)
 
 2. Compress function: 50 VCs
-   - G call preconditions: 96 calls × 0.2 VCs = 19 VCs ✅
-   - Loop invariants: 10 VCs ✅
-   - Sigma table access: 12 VCs ✅
-   - Finalization: 8 VCs ✅
+   - G call preconditions: 96 calls × 0.2 VCs = 19 VCs 
+   - Loop invariants: 10 VCs 
+   - Sigma table access: 12 VCs 
+   - Finalization: 8 VCs 
    - Overflow checks: 1 VC ⚠️ (may need assertion)
 
 3. Hash function: 62 VCs
-   - Initialization: 10 VCs ✅
+   - Initialization: 10 VCs 
    - Block loop invariant: 15 VCs ⚠️ (boundary conditions)
    - Final block handling: 20 VCs ⚠️ (case analysis needed)
-   - Conversion functions: 12 VCs ✅
+   - Conversion functions: 12 VCs 
    - Overflow prevention: 5 VCs ⚠️ (precondition mitigation)
 
 ### 5.3 Proof Techniques Applied
@@ -453,11 +453,11 @@ Prevents code explosion, aids SMT solver
 | Lines of Code | ~350 | ~330 | Similar |
 
 **Lessons Applied from SPARKNaCl**:
-1. ✅ Use fixed-size arrays (not unconstrained)
-2. ✅ Single compound loop invariants (not multiple)
-3. ✅ Relaxed_Initialization for partial arrays (not needed in Blake2b)
-4. ✅ Ghost functions for postconditions (LE_Pack could benefit)
-5. ✅ Expression functions for bitwise operations
+1.  Use fixed-size arrays (not unconstrained)
+2.  Single compound loop invariants (not multiple)
+3.  Relaxed_Initialization for partial arrays (not needed in Blake2b)
+4.  Ghost functions for postconditions (LE_Pack could benefit)
+5.  Expression functions for bitwise operations
 
 ---
 
@@ -490,9 +490,9 @@ with
 ### 7.2 API Readiness
 
 **Already Implemented**:
-- ✅ Main hash function: `Hash(Message, Output)`
-- ✅ Variable-length hash: `Hash_Variable_Length(Message, Output)`
-- ✅ Direct compression: `Compress(State, Block, Counter, Final)`
+-  Main hash function: `Hash(Message, Output)`
+-  Variable-length hash: `Hash_Variable_Length(Message, Output)`
+-  Direct compression: `Compress(State, Block, Counter, Final)`
 
 **Additional Needs for Argon2id**:
 - Blake2b with custom parameter blocks (salt, personalization)
@@ -520,7 +520,7 @@ with
 - **Result**: ~200 MB/s (acceptable for KDF operations)
 
 **Future Optimizations** (Phase 3):
-1. **Intrinsics for critical path** (Rotate_Right already uses intrinsic ✅)
+1. **Intrinsics for critical path** (Rotate_Right already uses intrinsic )
 2. **Loop unrolling** (currently disabled via pragma)
 3. **SIMD G function** (4x G calls in parallel)
 4. **Custom memory layout** (cache-line alignment)
@@ -637,18 +637,18 @@ with
 ### 10.2 Quality Gates
 
 **Before Phase 2 Integration**:
-- [ ] All RFC 7693 test vectors pass ✅ (HIGH)
+- [ ] All RFC 7693 test vectors pass  (HIGH)
 - [ ] SPARK flow analysis 100% ⚠️ (HIGH - pending toolchain)
 - [ ] SPARK proof rate ≥85% ⚠️ (MEDIUM - pending toolchain)
 - [ ] Performance ≥100 MB/s ❓ (LOW - not yet measured)
-- [ ] Documentation complete ✅ (HIGH)
+- [ ] Documentation complete  (HIGH)
 
 **Acceptance Criteria for Phase 1**:
-- Compiles without errors: ✅
+- Compiles without errors: 
 - Implements RFC 7693 correctly: ⚠️ (pending test validation)
-- SPARK contracts in place: ✅
-- Test infrastructure ready: ✅
-- Integrated into SparkPass build: ✅
+- SPARK contracts in place: 
+- Test infrastructure ready: 
+- Integrated into SparkPass build: 
 
 ---
 
@@ -782,27 +782,27 @@ with
 ### 13.1 Phase 1 Completion Criteria
 
 **Functional** (Must-Have):
-- [x] Compiles without errors: ✅ ACHIEVED
+- [x] Compiles without errors:  ACHIEVED
 - [ ] RFC 7693 test vectors pass: ⚠️ IN PROGRESS
-- [x] Variable-length hash implemented: ✅ ACHIEVED
-- [x] Compression function exposed: ✅ ACHIEVED
+- [x] Variable-length hash implemented:  ACHIEVED
+- [x] Compression function exposed:  ACHIEVED
 
 **Verification** (Target):
 - [ ] Flow analysis: 100% (data flow, initialization): ⚠️ PENDING
 - [ ] Proof rate: ≥91% (115/127 VCs): ⚠️ PENDING
 - [ ] No memory safety violations: ⚠️ PENDING VERIFICATION
-- [x] All contracts in place: ✅ ACHIEVED
+- [x] All contracts in place:  ACHIEVED
 
 **Performance** (Nice-to-Have):
 - [ ] Throughput: ≥200 MB/s: ❓ NOT YET MEASURED
-- [x] Stack usage: <2KB: ✅ ACHIEVED (~448 bytes)
-- [x] No heap allocations: ✅ ACHIEVED
+- [x] Stack usage: <2KB:  ACHIEVED (~448 bytes)
+- [x] No heap allocations:  ACHIEVED
 
 **Documentation** (Must-Have):
-- [x] Implementation documented: ✅ THIS DOCUMENT
-- [x] Proof strategies documented: ✅ BLAKE2B_ANALYSIS.md
-- [x] Test vectors documented: ✅ test_blake2b_vectors.adb
-- [x] Integration guide prepared: ✅ Section 7
+- [x] Implementation documented:  THIS DOCUMENT
+- [x] Proof strategies documented:  BLAKE2B_ANALYSIS.md
+- [x] Test vectors documented:  test_blake2b_vectors.adb
+- [x] Integration guide prepared:  Section 7
 
 ### 13.2 Quality Metrics
 
@@ -829,11 +829,11 @@ with
 Phase 1 Blake2b implementation has achieved **substantial completion**:
 
 **Achievements**:
-1. ✅ Full RFC 7693 implementation in pure SPARK
-2. ✅ Comprehensive proof contracts and invariants
-3. ✅ Complete test infrastructure with official vectors
-4. ✅ Thorough documentation and analysis
-5. ✅ Clean compilation with zero errors
+1.  Full RFC 7693 implementation in pure SPARK
+2.  Comprehensive proof contracts and invariants
+3.  Complete test infrastructure with official vectors
+4.  Thorough documentation and analysis
+5.  Clean compilation with zero errors
 
 **Remaining Work**:
 1. ⚠️ Debug runtime test failures (1-2 days)

@@ -449,7 +449,7 @@ Machine-readable format for CI/CD:
 
 ```json
 {
-  "sparkpass_version": "1.0.0",
+  "sparkpass_version": "2.0.8",
   "test_mode": "COMPREHENSIVE",
   "timestamp": "1729123456",
   "system": {

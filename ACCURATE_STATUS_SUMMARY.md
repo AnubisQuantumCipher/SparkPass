@@ -7,7 +7,7 @@
 
 ## What We Actually Accomplished
 
-### ✅ COMPLETED: Gold Level Contract Specifications
+###  COMPLETED: Gold Level Contract Specifications
 
 **1. Functional Postconditions Added:**
 ```ada
@@ -72,9 +72,9 @@ May need to add loop invariants in NTT.adb and INTT.adb to help GNATprove:
 ### What "Gold Level" Means:
 
 **Specification (Contracts):**
-- ✅ We have Gold Level postconditions
-- ✅ We specify WHAT the code should do (functional correctness)
-- ✅ We reference mathematical specifications
+-  We have Gold Level postconditions
+-  We specify WHAT the code should do (functional correctness)
+-  We reference mathematical specifications
 
 **Verification (Proofs):**
 - ⚠️ GNATprove must discharge the new verification conditions
@@ -86,13 +86,13 @@ May need to add loop invariants in NTT.adb and INTT.adb to help GNATprove:
 ```
 ┌─────────────────────────────────────────┐
 │  SILVER LEVEL: Memory Safety           │
-│  Status: ✅ PROVEN (73% overall)       │
+│  Status:  PROVEN (73% overall)       │
 │  Evidence: VERIFICATION_RESULTS_*.md   │
 └─────────────────────────────────────────┘
                   ↓
 ┌─────────────────────────────────────────┐
 │  GOLD LEVEL: Functional Correctness    │
-│  Contracts: ✅ IMPLEMENTED             │
+│  Contracts:  IMPLEMENTED             │
 │  Proofs: ⚠️ PENDING GNATprove         │
 │  Evidence: TBD after gnatprove run     │
 └─────────────────────────────────────────┘
@@ -104,17 +104,17 @@ May need to add loop invariants in NTT.adb and INTT.adb to help GNATprove:
 
 ### What We Can Claim NOW:
 
-✅ "Gold Level contract specifications implemented"
-✅ "Functional correctness postconditions added to NTT/INTT"
-✅ "Code upgraded from safety-only to correctness specifications"
-✅ "Mathematical specifications integrated into contracts"
+ "Gold Level contract specifications implemented"
+ "Functional correctness postconditions added to NTT/INTT"
+ "Code upgraded from safety-only to correctness specifications"
+ "Mathematical specifications integrated into contracts"
 
 ### What We CANNOT Claim Yet:
 
-❌ "Gold Level verification achieved"
-❌ "Functional correctness proven"
-❌ "GNATprove confirms algorithm correctness"
-❌ "99%+ proof rate on functional properties"
+ "Gold Level verification achieved"
+ "Functional correctness proven"
+ "GNATprove confirms algorithm correctness"
+ "99%+ proof rate on functional properties"
 
 ---
 
@@ -159,7 +159,7 @@ May need to add loop invariants in NTT.adb and INTT.adb to help GNATprove:
 
 ## Key Insight: The Two-Stage Process
 
-**Stage 1: Specification (✅ DONE)**
+**Stage 1: Specification ( DONE)**
 - Write contracts that say WHAT code should do
 - This is the "Gold Level specification"
 - We completed this stage

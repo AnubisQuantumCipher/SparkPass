@@ -1,7 +1,7 @@
 # SparkPass Deployment Guide
 
-**Version**: 1.0.0
-**Date**: 2025-10-16
+**Version**: 2.0.8
+**Date**: 2025-01-20
 **Platform**: macOS (ARM64)
 **Status**: Production Ready (Unsigned Build)
 
@@ -27,10 +27,10 @@
 
 ```bash
 # Download from GitHub Release
-curl -LO https://github.com/AnubisQuantumCipher/SparkPass/releases/download/v1.0.0/sparkpass-1.0.0-macos-arm64-unsigned.zip
+curl -LO https://github.com/AnubisQuantumCipher/SparkPass/releases/download/v2.0.8/sparkpass-v2.0.8-darwin-arm64.tar.gz
 
 # Extract
-unzip sparkpass-1.0.0-macos-arm64-unsigned.zip
+tar -xzf sparkpass-v2.0.8-darwin-arm64.tar.gz
 
 # Remove macOS quarantine (required for unsigned builds)
 xattr -d com.apple.quarantine bin/sparkpass_main
@@ -65,7 +65,7 @@ chmod +x bin/sparkpass_main
 - **OS**: macOS 10.15 (Catalina) or later
 - **Architecture**: ARM64 (Apple Silicon) recommended
 - **RAM**: 2 GB free (for Argon2id with 1 GiB memory)
-- **Disk**: 10 MB for binary, ~20 KB per vault
+- **Disk**: 1 MB for binary, ~20 KB per vault
 
 ### Build Requirements (Source Only)
 
@@ -87,8 +87,8 @@ SparkPass binary is statically linked and has no external dependencies.
 
 ```bash
 # Download binary
-curl -LO https://github.com/AnubisQuantumCipher/SparkPass/releases/download/v1.0.0/sparkpass-1.0.0-macos-arm64-unsigned.zip
-unzip sparkpass-1.0.0-macos-arm64-unsigned.zip
+curl -LO https://github.com/AnubisQuantumCipher/SparkPass/releases/download/v2.0.8/sparkpass-v2.0.8-darwin-arm64.tar.gz
+tar -xzf sparkpass-v2.0.8-darwin-arm64.tar.gz
 
 # Remove quarantine flag
 xattr -d com.apple.quarantine bin/sparkpass_main
@@ -157,7 +157,7 @@ The build script:
 - Compiles Ada sources with GNAT/GPRbuild
 - Compiles Objective-C LAContext helpers (for Touch ID)
 - Links with macOS frameworks
-- Produces: `bin/sparkpass_main` (~4.5MB)
+- Produces: `bin/sparkpass_main` (~863KB)
 
 ### 4. Verify Build
 
@@ -172,7 +172,7 @@ file ./bin/sparkpass_main
 
 Expected output:
 ```
-SparkPass version 1.0.0
+SparkPass version 2.0.8
 Post-quantum hybrid password vault
 Cryptography: ML-KEM-1024, ML-DSA-87, AES-256-GCM-SIV, Argon2id
 ```
@@ -384,7 +384,7 @@ cp ~/Secure/personal.spass.backup ~/Secure/personal.spass
 
 | Component | Memory |
 |-----------|--------|
-| Binary size | 4.5 MB |
+| Binary size | 863 KB |
 | Vault file (empty) | ~11 KB |
 | Vault file (100 entries) | ~21 KB |
 | Argon2id (temporary) | 1 GiB |
@@ -458,7 +458,7 @@ cp ~/Secure/personal.spass.backup ~/Secure/personal.spass
 
 ## Distribution
 
-SparkPass v1.0.0 is distributed as an unsigned build. This means:
+SparkPass v2.0.8 is distributed as an unsigned build. This means:
 
 - **macOS will show a security warning** on first run
 - **Users must manually approve** the application
@@ -488,17 +488,17 @@ To create releases:
 # Build binary
 ./build.sh
 
-# Create distribution ZIP
+# Create release tarball
 mkdir -p dist
-ditto -c -k --keepParent bin/sparkpass_main dist/sparkpass-1.0.0-macos-arm64-unsigned.zip
+tar -czf dist/sparkpass-v2.0.8-darwin-arm64.tar.gz -C bin sparkpass_main
 
 # Generate checksum
-shasum -a 256 dist/sparkpass-1.0.0-macos-arm64-unsigned.zip > dist/checksums.txt
+shasum -a 256 dist/sparkpass-v2.0.8-darwin-arm64.tar.gz > dist/sparkpass-v2.0.8-darwin-arm64.tar.gz.sha256
 
 # Create GitHub release
-gh release create v1.0.0 \
-  dist/sparkpass-1.0.0-macos-arm64-unsigned.zip \
-  dist/checksums.txt
+gh release create v2.0.8 \
+  dist/sparkpass-v2.0.8-darwin-arm64.tar.gz \
+  dist/sparkpass-v2.0.8-darwin-arm64.tar.gz.sha256
 ```
 
 ---
@@ -520,5 +520,5 @@ See `LICENSE` file for details.
 
 ---
 
-**Last Updated**: 2025-10-16
-**SparkPass Version**: 1.0.0
+**Last Updated**: 2025-01-20
+**SparkPass Version**: 2.0.8

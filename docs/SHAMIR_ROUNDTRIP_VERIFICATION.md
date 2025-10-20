@@ -4,7 +4,7 @@
 **Methodology**: Marmaragan LLM-assisted verification (n=6, r=1)
 **Tool**: GNATprove 14.1.1
 **Verification Level**: 4 (Maximum proof effort)
-**Status**: ✅ **PLATINUM** (48/48 VCs proven, 0 assumptions)
+**Status**:  **PLATINUM** (48/48 VCs proven, 0 assumptions)
 
 ---
 
@@ -16,13 +16,13 @@ The Shamir Secret Sharing round-trip property module has been **fully verified**
 
 | **Property**                     | **Status** | **VCs** | **Method**                          |
 |----------------------------------|------------|---------|-------------------------------------|
-| Memory safety                    | ✅ Proven  | 20      | SMT (CVC5 + Z3)                     |
-| Type safety                      | ✅ Proven  | 12      | Flow analysis + SMT                 |
-| Initialization                   | ✅ Proven  | 8       | Relaxed initialization tracking     |
-| Loop invariants                  | ✅ Proven  | 6       | CVC5 (single invariants, 64% rate)  |
-| Assertions (Marmaragan pattern)  | ✅ Proven  | 12      | CVC5 + Trivial (100% rate)          |
-| Postconditions                   | ✅ Proven  | 4       | CVC5 + Trivial                      |
-| **TOTAL**                        | ✅ Proven  | **48**  | **100% discharge, 0 assumptions**   |
+| Memory safety                    |  Proven  | 20      | SMT (CVC5 + Z3)                     |
+| Type safety                      |  Proven  | 12      | Flow analysis + SMT                 |
+| Initialization                   |  Proven  | 8       | Relaxed initialization tracking     |
+| Loop invariants                  |  Proven  | 6       | CVC5 (single invariants, 64% rate)  |
+| Assertions (Marmaragan pattern)  |  Proven  | 12      | CVC5 + Trivial (100% rate)          |
+| Postconditions                   |  Proven  | 4       | CVC5 + Trivial                      |
+| **TOTAL**                        |  Proven  | **48**  | **100% discharge, 0 assumptions**   |
 
 ---
 
@@ -100,16 +100,16 @@ Marmaragan research shows 25-36% success for complex multi-pragma patterns. We a
 
 | **Procedure/Function**              | **Flow** | **Proof** | **Total** | **Status** |
 |-------------------------------------|----------|-----------|-----------|------------|
-| `Verify_RoundTrip`                  | 5        | 34        | 39        | ✅ 100%    |
-| `Verify_Multiple_Configurations`    | 3        | 12        | 15        | ✅ 100%    |
+| `Verify_RoundTrip`                  | 5        | 34        | 39        |  100%    |
+| `Verify_Multiple_Configurations`    | 3        | 12        | 15        |  100%    |
 
 ### File: `sparkpass-crypto-shamir-roundtrip.ads`
 
 | **Procedure/Function**              | **Flow** | **Proof** | **Total** | **Status** |
 |-------------------------------------|----------|-----------|-----------|------------|
-| `Secrets_Match` (ghost)             | 1        | 0         | 1         | ✅ 100%    |
-| `Shares_Have_Valid_Size` (ghost)    | 1        | 0         | 1         | ✅ 100%    |
-| `Shares_Are_Valid` (ghost)          | 1        | 2         | 3         | ✅ 100%    |
+| `Secrets_Match` (ghost)             | 1        | 0         | 1         |  100%    |
+| `Shares_Have_Valid_Size` (ghost)    | 1        | 0         | 1         |  100%    |
+| `Shares_Are_Valid` (ghost)          | 1        | 2         | 3         |  100%    |
 
 ### **Grand Total: 48 VCs, 100% Proven**
 
@@ -117,7 +117,7 @@ Marmaragan research shows 25-36% success for complex multi-pragma patterns. We a
 
 ## Properties Proven
 
-### ✅ **Memory Safety** (Fully Proven)
+###  **Memory Safety** (Fully Proven)
 
 1. **No buffer overflows**: All array accesses within bounds
 2. **No null pointer dereferences**: N/A (no pointers used)
@@ -129,7 +129,7 @@ Marmaragan research shows 25-36% success for complex multi-pragma patterns. We a
 - Range checks: 12 VCs (all proven)
 - Initialization checks: 8 VCs (all proven)
 
-### ✅ **Type Safety** (Fully Proven)
+###  **Type Safety** (Fully Proven)
 
 1. **No type confusions**: Strong typing enforced by Ada
 2. **No enum violations**: Share_Count subtype constraints verified
@@ -141,7 +141,7 @@ Marmaragan research shows 25-36% success for complex multi-pragma patterns. We a
 - Postcondition checks: 4 VCs (all proven)
 - Type invariant checks: 2 VCs (all proven)
 
-### ✅ **No Runtime Errors** (Fully Proven)
+###  **No Runtime Errors** (Fully Proven)
 
 1. **No exceptions**: All operations complete successfully for valid inputs
 2. **No infinite loops**: Loop variants implicit (bounded iteration)
@@ -162,15 +162,15 @@ Marmaragan research shows 25-36% success for complex multi-pragma patterns. We a
 **Reason**: The correctness of this property depends on mathematical theorems about Lagrange interpolation over finite fields (GF(256)), which are beyond the capabilities of automated theorem provers.
 
 **What IS proven**:
-1. ✅ If Split succeeds, shares are well-formed
-2. ✅ If Combine succeeds, a 32-byte secret is reconstructed
-3. ✅ The byte-by-byte comparison is performed correctly
-4. ✅ The `Matches` flag accurately reflects comparison result
+1.  If Split succeeds, shares are well-formed
+2.  If Combine succeeds, a 32-byte secret is reconstructed
+3.  The byte-by-byte comparison is performed correctly
+4.  The `Matches` flag accurately reflects comparison result
 
 **What is NOT proven**:
-1. ❌ That the reconstructed secret equals the original secret
-2. ❌ Lagrange interpolation correctness over GF(256)
-3. ❌ Polynomial evaluation/interpolation inverse property
+1.  That the reconstructed secret equals the original secret
+2.  Lagrange interpolation correctness over GF(256)
+3.  Polynomial evaluation/interpolation inverse property
 
 **Justification**: This property is mathematically proven in the literature:
 - Shamir, Adi (1979). "How to Share a Secret". *Communications of the ACM* 22(11): 612-613.
@@ -261,14 +261,14 @@ end Test_Shamir_RoundTrip;
 | VCs Proven                  | 404 (100%)              | 48 (100%)            |
 | VCs Unproven                | 0                       | 0                    |
 | Assumptions (pragma Assume) | 0                       | 0                    |
-| Certification Level         | ✅ Gold                 | ✅ **Platinum**      |
+| Certification Level         |  Gold                 |  **Platinum**      |
 
 The RoundTrip module achieves **Platinum** status because:
-1. ✅ 100% VC discharge (no unproven VCs)
-2. ✅ 0 assumptions (no `pragma Assume` used)
-3. ✅ Full memory safety proven
-4. ✅ Full type safety proven
-5. ✅ All assertions proven using Marmaragan patterns
+1.  100% VC discharge (no unproven VCs)
+2.  0 assumptions (no `pragma Assume` used)
+3.  Full memory safety proven
+4.  Full type safety proven
+5.  All assertions proven using Marmaragan patterns
 
 ---
 
@@ -350,7 +350,7 @@ We achieved **Platinum-level certification**: **48/48 VCs proven with 0 assumpti
 
 ### Verification Summary
 
-| ✅ **What is Proven**                  | ⚠️ **What is Assumed**                      |
+|  **What is Proven**                  | ⚠️ **What is Assumed**                      |
 |----------------------------------------|---------------------------------------------|
 | Memory safety (no buffer overflows)    | Lagrange interpolation correctness over GF(256) |
 | Type safety (no range violations)      | Polynomial evaluation/interpolation inverse |
@@ -366,4 +366,4 @@ The mathematical correctness assumption is well-founded, documented, and tested 
 **Verification Completed**: 2025-10-17
 **Tool**: GNATprove 14.1.1_91818ed8
 **Methodology**: Marmaragan (n=6, r=1)
-**Status**: ✅ **PLATINUM** (100% proof discharge, 0 assumptions)
+**Status**:  **PLATINUM** (100% proof discharge, 0 assumptions)

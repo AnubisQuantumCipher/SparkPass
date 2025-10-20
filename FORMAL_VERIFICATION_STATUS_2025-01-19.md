@@ -11,7 +11,7 @@
 SparkPass has successfully implemented a **complete formal proof infrastructure** for cryptographic correctness using pure SPARK Ada, without requiring external theorem provers like Coq. This represents a major milestone toward Platinum-level formal verification.
 
 **Current Achievement Level:**
-- ✅ **Silver Level**: ACHIEVED (memory safety 99.49% proven)
+-  **Silver Level**: ACHIEVED (memory safety 99.49% proven)
 - ⚠️ **Gold Level**: 30% COMPLETE (partial correctness proofs)
 - ⏳ **Platinum Level**: Foundation 30% COMPLETE, methodology validated
 
@@ -42,8 +42,8 @@ PROOF_STATUS_COMPLETE.md                                      (315 lines)
 - `INTT_Definition`: Direct mathematical specification of inverse DFT
 
 **Key Properties Proven:**
-- ✅ ζ = 17 is primitive 512-th root of unity (ζ^512 ≡ 1, ζ^256 ≡ -1 mod 3329)
-- ✅ 256^(-1) = 3303 mod 3329 (normalization constant correctness)
+-  ζ = 17 is primitive 512-th root of unity (ζ^512 ≡ 1, ζ^256 ≡ -1 mod 3329)
+-  256^(-1) = 3303 mod 3329 (normalization constant correctness)
 - ⚠️ Orthogonality relations: (1/n)·Σζ^(k(i-j)) = δ(i,j) (partially proven)
 
 ### 3. Proof Lemma Structure
@@ -94,8 +94,8 @@ Instead of using `pragma Assume` (which just assumes properties without proof), 
 ```ada
 pragma Assume (INTT(NTT(x)) = x, "Requires Coq for formal proof");
 ```
-- ❌ No actual proof, just an assumption
-- ❌ Requires external theorem prover (24-36 months effort)
+-  No actual proof, just an assumption
+-  Requires external theorem prover (24-36 months effort)
 
 **Our Pure SPARK Approach (IMPLEMENTED):**
 ```ada
@@ -113,9 +113,9 @@ pragma Assert (Sum in 0 .. Q - 1);  -- Guide SMT through steps
 -- Step 4: Compose to prove round-trip
 -- Each step builds on previous proofs
 ```
-- ✅ Actual mathematical proof using ghost code
-- ✅ No external tools needed (uses SPARK's built-in SMT solvers)
-- ✅ 10x faster timeline (12-18 months vs 24-36 months)
+-  Actual mathematical proof using ghost code
+-  No external tools needed (uses SPARK's built-in SMT solvers)
+-  10x faster timeline (12-18 months vs 24-36 months)
 
 ---
 
@@ -143,7 +143,7 @@ alr exec -- gnatprove -P sparkpass.gpr --mode=prove --level=2 \
 
 ## WHAT'S PROVEN VS WHAT'S TESTED
 
-### ✅ Currently PROVEN (Formal Verification)
+###  Currently PROVEN (Formal Verification)
 
 1. **Memory Safety** - Silver Level (99.49% of 9,440 VCs)
    - No buffer overflows
@@ -174,26 +174,26 @@ alr exec -- gnatprove -P sparkpass.gpr --mode=prove --level=2 \
 ### ⚠️ Currently TESTED (Runtime Verification Only - NOT Formally Proven)
 
 1. **Argon2id RFC 9106 Compliance**
-   - ❌ NOT PROVEN: Output matches RFC 9106 specification
-   - ✅ TESTED: KAT vectors pass (tests/test_argon2id_vectors.adb)
-   - ❌ NO POSTCONDITION: `Argon2id.Derive` has no `Post` contract proving correctness
+   -  NOT PROVEN: Output matches RFC 9106 specification
+   -  TESTED: KAT vectors pass (tests/test_argon2id_vectors.adb)
+   -  NO POSTCONDITION: `Argon2id.Derive` has no `Post` contract proving correctness
 
 2. **ML-KEM FIPS 203 Compliance**
-   - ❌ NOT PROVEN: KeyGen/Encaps/Decaps match FIPS 203
-   - ✅ TESTED: NIST KAT vectors pass
+   -  NOT PROVEN: KeyGen/Encaps/Decaps match FIPS 203
+   -  TESTED: NIST KAT vectors pass
    - ⚠️ PARTIAL: NTT correctness 70% proven (helps polynomial operations)
 
 3. **ML-DSA FIPS 204 Compliance**
-   - ❌ NOT PROVEN: KeyGen/Sign/Verify match FIPS 204
-   - ✅ TESTED: NIST KAT vectors pass
+   -  NOT PROVEN: KeyGen/Sign/Verify match FIPS 204
+   -  TESTED: NIST KAT vectors pass
    - ⚠️ SIMILAR TO ML-KEM: Uses NTT (can reuse proofs when complete)
 
 4. **NTT Round-Trip Full Proof**
    - ⚠️ 70% COMPLETE: Foundations and easy lemmas proven
    - ⏳ 30% REMAINING: Needs GNATprove results to identify gaps
-   - ✅ TESTED: Runtime tests verify round-trip property
+   -  TESTED: Runtime tests verify round-trip property
 
-### ❌ NOT YET ADDRESSED
+###  NOT YET ADDRESSED
 
 1. **Side-Channel Resistance**
    - No formal timing analysis yet
@@ -209,11 +209,11 @@ alr exec -- gnatprove -P sparkpass.gpr --mode=prove --level=2 \
 ## TIMELINE TO PLATINUM LEVEL
 
 ### Completed (January 2025)
-- ✅ Silver Level verification ACHIEVED
-- ✅ Pure SPARK proof infrastructure COMPLETE (830 lines)
-- ✅ NTT correctness proof 70% COMPLETE
-- ✅ Methodology established and documented
-- ✅ No external theorem provers needed
+-  Silver Level verification ACHIEVED
+-  Pure SPARK proof infrastructure COMPLETE (830 lines)
+-  NTT correctness proof 70% COMPLETE
+-  Methodology established and documented
+-  No external theorem provers needed
 
 ### Next 2-4 Weeks
 - ⏳ Complete GNATprove verification of NTT proofs
@@ -249,7 +249,7 @@ alr exec -- gnatprove -P sparkpass.gpr --mode=prove --level=2 \
 
 ## WHAT WE CAN HONESTLY CLAIM TODAY
 
-### ✅ TRUE CLAIMS
+###  TRUE CLAIMS
 
 1. "SparkPass has achieved Silver Level formal verification with 99.49% memory safety proven"
 2. "We have implemented 830 lines of pure SPARK proof infrastructure for cryptographic correctness"
@@ -259,21 +259,21 @@ alr exec -- gnatprove -P sparkpass.gpr --mode=prove --level=2 \
 6. "All cryptographic operations pass NIST KAT test vectors"
 7. "Zero C dependencies for cryptographic primitives - all pure SPARK implementations"
 
-### ❌ CANNOT CLAIM (Yet)
+###  CANNOT CLAIM (Yet)
 
-1. ❌ "Argon2id is formally proven to match RFC 9106" (tested, not proven)
-2. ❌ "ML-KEM is formally proven to match FIPS 203" (tested, not proven)
-3. ❌ "ML-DSA is formally proven to match FIPS 204" (tested, not proven)
-4. ❌ "NTT round-trip property is fully proven" (70% proven, awaiting GNATprove results)
-5. ❌ "SparkPass has achieved Platinum Level verification" (foundation 30% complete)
-6. ❌ "Cryptographic correctness is mathematically proven" (partial proofs, not complete)
+1.  "Argon2id is formally proven to match RFC 9106" (tested, not proven)
+2.  "ML-KEM is formally proven to match FIPS 203" (tested, not proven)
+3.  "ML-DSA is formally proven to match FIPS 204" (tested, not proven)
+4.  "NTT round-trip property is fully proven" (70% proven, awaiting GNATprove results)
+5.  "SparkPass has achieved Platinum Level verification" (foundation 30% complete)
+6.  "Cryptographic correctness is mathematically proven" (partial proofs, not complete)
 
 ### ⚠️ QUALIFIED CLAIMS (True with Context)
 
-1. ⚠️ "SparkPass is on track for Platinum-level verification within 12-18 months" ✅ TRUE
-2. ⚠️ "We have formal proofs of NTT correctness foundations" ✅ TRUE (70% proven)
-3. ⚠️ "Using pure SPARK without Coq or external theorem provers" ✅ TRUE
-4. ⚠️ "Faster than traditional theorem proving approaches" ✅ TRUE (10x faster timeline)
+1. ⚠️ "SparkPass is on track for Platinum-level verification within 12-18 months"  TRUE
+2. ⚠️ "We have formal proofs of NTT correctness foundations"  TRUE (70% proven)
+3. ⚠️ "Using pure SPARK without Coq or external theorem provers"  TRUE
+4. ⚠️ "Faster than traditional theorem proving approaches"  TRUE (10x faster timeline)
 
 ---
 
@@ -282,22 +282,22 @@ alr exec -- gnatprove -P sparkpass.gpr --mode=prove --level=2 \
 ### What SparkPass Has (TODAY)
 
 **Verification:**
-- ✅ Silver Level formal verification (exceeds 95% of password managers)
-- ✅ Pure SPARK implementations (no C/C++ memory unsafety)
-- ✅ Formal proof infrastructure in place (unique for password manager)
-- ✅ 70% of NTT correctness proven (unprecedented for consumer software)
+-  Silver Level formal verification (exceeds 95% of password managers)
+-  Pure SPARK implementations (no C/C++ memory unsafety)
+-  Formal proof infrastructure in place (unique for password manager)
+-  70% of NTT correctness proven (unprecedented for consumer software)
 
 **Cryptography:**
-- ✅ Post-quantum algorithms (ML-KEM-1024, ML-DSA-87)
-- ✅ RFC 9106 Argon2id (tested compliance)
-- ✅ NIST FIPS 203/204 (tested compliance)
-- ✅ ChaCha20-Poly1305 via SPARKNaCl
+-  Post-quantum algorithms (ML-KEM-1024, ML-DSA-87)
+-  RFC 9106 Argon2id (tested compliance)
+-  NIST FIPS 203/204 (tested compliance)
+-  ChaCha20-Poly1305 via SPARKNaCl
 
 **Security:**
-- ✅ No C dependencies for crypto primitives
-- ✅ Touch ID/Face ID integration on macOS
-- ✅ Secure vault format with ML-DSA signatures
-- ✅ Zeroization postconditions proven
+-  No C dependencies for crypto primitives
+-  Touch ID/Face ID integration on macOS
+-  Secure vault format with ML-DSA signatures
+-  Zeroization postconditions proven
 
 ### What Most Password Managers Have
 
@@ -423,11 +423,11 @@ sparkpass-crypto-mlkem-ntt-proofs.ads (Specifications)
 
 SparkPass has successfully established a **complete formal proof infrastructure** for cryptographic correctness using pure SPARK Ada. This approach:
 
-- ✅ Avoids `pragma Assume` (properties proven, not assumed)
-- ✅ Avoids Coq dependency (uses SPARK native SMT solvers)
-- ✅ Compiles successfully (ready for verification)
-- ✅ Provides systematic methodology (applicable to all algorithms)
-- ✅ Is **10x faster** than traditional theorem proving (12-18 months vs 24-36 months)
+-  Avoids `pragma Assume` (properties proven, not assumed)
+-  Avoids Coq dependency (uses SPARK native SMT solvers)
+-  Compiles successfully (ready for verification)
+-  Provides systematic methodology (applicable to all algorithms)
+-  Is **10x faster** than traditional theorem proving (12-18 months vs 24-36 months)
 
 **Current Achievement:**
 - Silver Level ACHIEVED

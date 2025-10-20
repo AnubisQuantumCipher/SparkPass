@@ -255,24 +255,24 @@ Zeta := Zeta_BitRev (Zeta_Index);
 ## Expected Outcomes
 
 ### If Lemmas Work (Best Case)
-✅ **100% automated proof**
-✅ **No manual justifications needed**
-✅ **SMT provers guided through non-linear arithmetic**
-✅ **Clean, maintainable approach**
+ **100% automated proof**
+ **No manual justifications needed**
+ **SMT provers guided through non-linear arithmetic**
+ **Clean, maintainable approach**
 
 **Effort:** 1-2 days to implement and tune lemmas
 
 ### If Lemmas Help Partially
-✅ **Improved proof percentage (99.95%+)**
-✅ **Fewer unproven checks**
-✅ **Better understanding of SMT limitations**
+ **Improved proof percentage (99.95%+)**
+ **Fewer unproven checks**
+ **Better understanding of SMT limitations**
 
 **Effort:** 1 day to implement, accept remaining limitations
 
 ### If Lemmas Don't Help (Fallback)
-✅ **Use Pragma Annotate for transparent documentation**
-✅ **Maintain honest 99.92% status**
-✅ **Mathematical proofs remain valid**
+ **Use Pragma Annotate for transparent documentation**
+ **Maintain honest 99.92% status**
+ **Mathematical proofs remain valid**
 
 **Effort:** 30 minutes to add annotations
 

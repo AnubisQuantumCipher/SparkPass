@@ -1,6 +1,6 @@
 # ML-KEM-1024 NIST FIPS 203 Validation Report
 
-**Status**: ✅ **VALIDATED** - Implementation passes NIST Known Answer Tests (KAT)
+**Status**:  **VALIDATED** - Implementation passes NIST Known Answer Tests (KAT)
 **Date**: October 19, 2025
 **Standard**: NIST FIPS 203 (Module-Lattice-Based Key-Encapsulation Mechanism)
 **Security Level**: Level 5 (256-bit quantum security)
@@ -11,9 +11,9 @@
 
 SparkPass ML-KEM-1024 implementation has been **validated against NIST FIPS 203 Known Answer Tests** and achieves **100% compliance** across all cryptographic components:
 
-- ✅ **KeyGen** (Algorithm 15): Deterministic key generation matches NIST vectors
-- ✅ **Encaps** (Algorithm 16): Encapsulation produces correct ciphertexts and shared secrets
-- ✅ **Decaps** (Algorithm 18): Decapsulation with implicit rejection validated
+-  **KeyGen** (Algorithm 15): Deterministic key generation matches NIST vectors
+-  **Encaps** (Algorithm 16): Encapsulation produces correct ciphertexts and shared secrets
+-  **Decaps** (Algorithm 18): Decapsulation with implicit rejection validated
 
 All tests pass using official NIST test vectors from `kat_MLKEM_1024.rsp`.
 
@@ -30,10 +30,10 @@ ML-KEM-1024 NIST KAT Validation
 Test Vectors: kat_MLKEM_1024.rsp (NIST FIPS 203)
 
 [Vector 0] Testing...
-  [KeyGen] ✓ PASS - Public key matches
-  [Encaps] ✓ PASS - Ciphertext matches
-  [Encaps] ✓ PASS - Shared secret matches
-  [Decaps] ✓ PASS - Shared secret matches
+  [KeyGen]  PASS - Public key matches
+  [Encaps]  PASS - Ciphertext matches
+  [Encaps]  PASS - Shared secret matches
+  [Decaps]  PASS - Shared secret matches
 
 ========================================================================
 Test Summary
@@ -44,7 +44,7 @@ Encaps Pass:     1 /  1
 Decaps Pass:     1 /  1
 Total Failures:  0
 
-✓ SUCCESS: All tests passed!
+ SUCCESS: All tests passed!
 ```
 
 ### Test Vector Details
@@ -52,9 +52,9 @@ Total Failures:  0
 **Vector 0** (from `kat_MLKEM_1024.rsp`, count=0):
 - **d** (KeyGen seed): `6dbbc4375136df3b07f7c70e639e223e177e7fd53b161b3f4d57791794f12624`
 - **msg** (Encaps seed): `20a7b7e10f70496cc38220b944def699bf14d14e55cf4c90a12c1b33fc80ffff`
-- **Public Key**: 1568 bytes (✅ matches NIST byte-for-byte)
-- **Ciphertext**: 1568 bytes (✅ matches NIST byte-for-byte)
-- **Shared Secret**: 32 bytes = `23f211b84a6ee20c8c29f6e5314c91b414e940513d380add17bd724ab3a13a52` (✅ matches NIST byte-for-byte)
+- **Public Key**: 1568 bytes ( matches NIST byte-for-byte)
+- **Ciphertext**: 1568 bytes ( matches NIST byte-for-byte)
+- **Shared Secret**: 32 bytes = `23f211b84a6ee20c8c29f6e5314c91b414e940513d380add17bd724ab3a13a52` ( matches NIST byte-for-byte)
 
 ### Secret Key Format Difference ⚠️
 
@@ -68,11 +68,11 @@ The NIST KAT validation test harness (`test/test_mlkem_full_kat.adb`) performs t
 
 | **Test** | **What's Checked** | **SparkPass Result** | **Explanation** |
 |----------|-------------------|---------------------|-----------------|
-| **KeyGen → PK** | Public key bytes match NIST | ✅ **PASS** (1000/1000) | Byte-for-byte identical |
-| **KeyGen → SK** | Secret key bytes match NIST | ❌ **FAIL** (0/1000) | **Intentional format difference** |
-| **Encaps → CT** | Ciphertext bytes match NIST | ✅ **PASS** (1000/1000) | Byte-for-byte identical |
-| **Encaps → SS** | Shared secret bytes match NIST | ✅ **PASS** (1000/1000) | Byte-for-byte identical |
-| **Decaps → SS** | Decaps(SK, CT) produces correct SS | ✅ **PASS** (1000/1000) | **Proves SK is cryptographically correct** |
+| **KeyGen → PK** | Public key bytes match NIST |  **PASS** (1000/1000) | Byte-for-byte identical |
+| **KeyGen → SK** | Secret key bytes match NIST |  **FAIL** (0/1000) | **Intentional format difference** |
+| **Encaps → CT** | Ciphertext bytes match NIST |  **PASS** (1000/1000) | Byte-for-byte identical |
+| **Encaps → SS** | Shared secret bytes match NIST |  **PASS** (1000/1000) | Byte-for-byte identical |
+| **Decaps → SS** | Decaps(SK, CT) produces correct SS |  **PASS** (1000/1000) | **Proves SK is cryptographically correct** |
 
 **Validation Result**: 4000/4000 cryptographic operations pass (100% functional correctness)
 
@@ -141,11 +141,11 @@ Therefore: Decaps(sk_nist, ct) ≡ Decaps(sk_sparkpass, ct)
 
 | **Aspect** | **NIST Seed Format** | **SparkPass Expanded Format** |
 |------------|---------------------|-------------------------------|
-| **Size** | 64 bytes ✅ | 3168 bytes ❌ |
-| **Decaps Speed** | Slow (re-expand every time) ❌ | Fast (pre-expanded) ✅ |
-| **Memory Usage** | Minimal ✅ | 49× larger ❌ |
-| **Security** | Equivalent ✅ | Equivalent ✅ |
-| **Test Vector Compat** | Direct match ✅ | Requires conversion ❌ |
+| **Size** | 64 bytes  | 3168 bytes  |
+| **Decaps Speed** | Slow (re-expand every time)  | Fast (pre-expanded)  |
+| **Memory Usage** | Minimal  | 49× larger  |
+| **Security** | Equivalent  | Equivalent  |
+| **Test Vector Compat** | Direct match  | Requires conversion  |
 
 **SparkPass Design Choice**: Optimize for **decapsulation performance** (password manager use case: frequent unlocks).
 
@@ -154,13 +154,13 @@ Therefore: Decaps(sk_nist, ct) ≡ Decaps(sk_sparkpass, ct)
 #### What This Means for Validation
 
 **What the test harness validates**:
-- ✅ Public keys are byte-identical to NIST (KeyGen correctness)
-- ✅ Ciphertexts are byte-identical to NIST (Encaps correctness)
-- ✅ Shared secrets are byte-identical to NIST (Encaps/Decaps correctness)
-- ✅ Decapsulation works correctly with SparkPass secret keys (SK functional correctness)
+-  Public keys are byte-identical to NIST (KeyGen correctness)
+-  Ciphertexts are byte-identical to NIST (Encaps correctness)
+-  Shared secrets are byte-identical to NIST (Encaps/Decaps correctness)
+-  Decapsulation works correctly with SparkPass secret keys (SK functional correctness)
 
 **What the test harness does NOT validate**:
-- ❌ Secret key byte representation (intentional design difference)
+-  Secret key byte representation (intentional design difference)
 
 **Conclusion**: SparkPass achieves **100% cryptographic correctness** (4000/4000 operations) while using a different but equivalent secret key encoding.
 
@@ -169,11 +169,11 @@ Therefore: Decaps(sk_nist, ct) ≡ Decaps(sk_sparkpass, ct)
 #### Interoperability Implications
 
 **Can SparkPass**:
-- ✅ Generate keys that produce NIST-compatible public keys? **YES** (byte-identical)
-- ✅ Encapsulate to NIST-compatible ciphertexts? **YES** (byte-identical)
-- ✅ Decapsulate NIST-compatible ciphertexts? **YES** (shared secrets match)
-- ❌ Import NIST test vector secret keys directly? **NO** (format mismatch)
-- ✅ Import seed `d` and derive equivalent secret key? **YES** (what the test harness does)
+-  Generate keys that produce NIST-compatible public keys? **YES** (byte-identical)
+-  Encapsulate to NIST-compatible ciphertexts? **YES** (byte-identical)
+-  Decapsulate NIST-compatible ciphertexts? **YES** (shared secrets match)
+-  Import NIST test vector secret keys directly? **NO** (format mismatch)
+-  Import seed `d` and derive equivalent secret key? **YES** (what the test harness does)
 
 **Real-World Impact**: SparkPass can interoperate with any FIPS 203 implementation via public keys and ciphertexts. Secret key format only matters for key storage/transfer, which is implementation-specific.
 
@@ -200,17 +200,17 @@ SparkPass ML-KEM-1024
 
 | Component | Algorithm | Status |
 |-----------|-----------|--------|
-| **KeyGen** | FIPS 203 Alg 15 | ✅ Validated |
-| **Encaps** | FIPS 203 Alg 16 | ✅ Validated |
-| **Decaps** | FIPS 203 Alg 18 | ✅ Validated |
-| **K-PKE.Encrypt** | FIPS 203 Alg 13 | ✅ Validated |
-| **K-PKE.Decrypt** | FIPS 203 Alg 14 | ✅ Validated |
-| **NTT** | FIPS 203 Alg 10 | ✅ Verified |
-| **XOF** | SHAKE-128 | ✅ Via Keccak |
-| **PRF** | SHAKE-256 | ✅ Via Keccak |
-| **G** | SHA3-512 | ✅ Via Keccak |
-| **H** | SHA3-256 | ✅ Via Keccak |
-| **J** | SHAKE-256 | ✅ Via Keccak |
+| **KeyGen** | FIPS 203 Alg 15 |  Validated |
+| **Encaps** | FIPS 203 Alg 16 |  Validated |
+| **Decaps** | FIPS 203 Alg 18 |  Validated |
+| **K-PKE.Encrypt** | FIPS 203 Alg 13 |  Validated |
+| **K-PKE.Decrypt** | FIPS 203 Alg 14 |  Validated |
+| **NTT** | FIPS 203 Alg 10 |  Verified |
+| **XOF** | SHAKE-128 |  Via Keccak |
+| **PRF** | SHAKE-256 |  Via Keccak |
+| **G** | SHA3-512 |  Via Keccak |
+| **H** | SHA3-256 |  Via Keccak |
+| **J** | SHAKE-256 |  Via Keccak |
 
 ### Parameters (ML-KEM-1024)
 
@@ -283,9 +283,9 @@ Bit_Value := (if W_Polynomial(I) >= 833 and W_Polynomial(I) < 2497
 ```
 
 **Impact**: Message decryption now correctly recovers plaintext, enabling:
-- ✅ Valid ciphertext comparison (c' = c)
-- ✅ Correct shared secret derivation (K̄ on valid path)
-- ✅ Proper implicit rejection (SHAKE256(z||c) on invalid path)
+-  Valid ciphertext comparison (c' = c)
+-  Correct shared secret derivation (K̄ on valid path)
+-  Proper implicit rejection (SHAKE256(z||c) on invalid path)
 
 ---
 
@@ -307,7 +307,7 @@ Bit_Value := (if W_Polynomial(I) >= 833 and W_Polynomial(I) < 2497
 Shared_Secret := K_Bar;
 ```
 
-✅ **Compliant**: Returns K̄ directly without additional hashing.
+ **Compliant**: Returns K̄ directly without additional hashing.
 
 ### FIPS 203 Algorithm 18 (Decaps)
 
@@ -338,7 +338,7 @@ else
 end if;
 ```
 
-✅ **Compliant**: Uses SHAKE256(z||c) for implicit rejection per FIPS 203.
+ **Compliant**: Uses SHAKE256(z||c) for implicit rejection per FIPS 203.
 
 ### Constant-Time Comparison
 
@@ -356,7 +356,7 @@ begin
 end;
 ```
 
-✅ **Timing-Safe**: XOR accumulator prevents timing side-channels.
+ **Timing-Safe**: XOR accumulator prevents timing side-channels.
 
 ---
 
@@ -410,11 +410,11 @@ gnatmake test/test_mlkem_full_kat.adb \
 ### Timing Attack Resistance
 
 All operations use constant-time primitives:
-- ✅ Modular reduction (Barrett reduction)
-- ✅ NTT/INTT transformations
-- ✅ Polynomial arithmetic (mod q)
-- ✅ Ciphertext comparison (XOR accumulator)
-- ✅ Compress/Decompress (data-independent branches)
+-  Modular reduction (Barrett reduction)
+-  NTT/INTT transformations
+-  Polynomial arithmetic (mod q)
+-  Ciphertext comparison (XOR accumulator)
+-  Compress/Decompress (data-independent branches)
 
 ### Memory Safety
 
@@ -461,10 +461,10 @@ Implementation uses **pure SPARK** for core algorithms:
 
 This implementation has been **validated** to comply with:
 
-✅ **NIST FIPS 203** - Module-Lattice-Based Key-Encapsulation Mechanism Standard
-✅ **ACVP Test Format** - Uses standard `ct`/`ss` fields (not repository-specific extensions)
-✅ **Constant-Time** - All operations timing-attack resistant
-✅ **Memory-Safe** - SPARK-verified core algorithms
+ **NIST FIPS 203** - Module-Lattice-Based Key-Encapsulation Mechanism Standard
+ **ACVP Test Format** - Uses standard `ct`/`ss` fields (not repository-specific extensions)
+ **Constant-Time** - All operations timing-attack resistant
+ **Memory-Safe** - SPARK-verified core algorithms
 
 **Validation Date**: October 19, 2025
 **Validated By**: SparkPass Development Team
@@ -474,4 +474,4 @@ This implementation has been **validated** to comply with:
 
 **Document Status**: Official Validation Report
 **Last Updated**: October 19, 2025
-**Version**: 1.0.0
+**Version**: 2.0.8

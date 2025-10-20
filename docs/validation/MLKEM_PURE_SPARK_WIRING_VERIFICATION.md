@@ -1,7 +1,7 @@
 # ML-KEM Pure SPARK Wiring Verification
 
 **Date**: October 19, 2025
-**Status**: ✅ **VERIFIED** - Pure SPARK ML-KEM is wired and active
+**Status**:  **VERIFIED** - Pure SPARK ML-KEM is wired and active
 
 ---
 
@@ -24,7 +24,7 @@ Line 8:   with SparkPass.Crypto.MLKEM;
 Line 123:  SparkPass.Crypto.MLKEM.Keypair (Public, Secret_SK);
 ```
 
-✅ **Vault uses `SparkPass.Crypto.MLKEM`** (not LibOQS)
+ **Vault uses `SparkPass.Crypto.MLKEM`** (not LibOQS)
 
 ### 2. What SparkPass.Crypto.MLKEM Contains
 
@@ -39,7 +39,7 @@ with SparkPass.Crypto.MLKEM.Decaps;
 with SparkPass.Crypto.Random;
 ```
 
-✅ **Uses pure SPARK modules** (KeyGen, Encaps, Decaps)
+ **Uses pure SPARK modules** (KeyGen, Encaps, Decaps)
 
 ### 3. Implementation of Each Operation
 
@@ -56,7 +56,7 @@ begin
    );
 end Keypair;
 ```
-✅ Calls `SparkPass.Crypto.MLKEM.KeyGen.KeyGen` (pure SPARK, NIST FIPS 203 Algorithm 15)
+ Calls `SparkPass.Crypto.MLKEM.KeyGen.KeyGen` (pure SPARK, NIST FIPS 203 Algorithm 15)
 
 **Encapsulate** (Lines 61-82):
 ```ada
@@ -72,7 +72,7 @@ exception
       Success := False;
 end Encapsulate;
 ```
-✅ Calls `SparkPass.Crypto.MLKEM.Encaps.Encapsulate` (pure SPARK, NIST FIPS 203 Algorithm 16)
+ Calls `SparkPass.Crypto.MLKEM.Encaps.Encapsulate` (pure SPARK, NIST FIPS 203 Algorithm 16)
 
 **Decapsulate** (Lines 97-120):
 ```ada
@@ -88,7 +88,7 @@ exception
       Success := False;
 end Decapsulate;
 ```
-✅ Calls `SparkPass.Crypto.MLKEM.Decaps.Decapsulate` (pure SPARK, NIST FIPS 203 Algorithm 18)
+ Calls `SparkPass.Crypto.MLKEM.Decaps.Decapsulate` (pure SPARK, NIST FIPS 203 Algorithm 18)
 
 ### 4. Runtime Validation
 
@@ -96,17 +96,17 @@ Tested pure SPARK ML-KEM with actual vault operations:
 
 ```bash
 $ SPARKPASS_PASSWORD="test" bin/sparkpass_main init /tmp/test.spass
-✓ vault initialized
+ vault initialized
 
 $ SPARKPASS_PASSWORD="test" bin/sparkpass_main add /tmp/test.spass api_key
-✓ entry added
+ entry added
 
 $ SPARKPASS_PASSWORD="test" bin/sparkpass_main ls /tmp/test.spass
 Entries:  1
   - api_key [PASSWORD]
 ```
 
-✅ **All vault operations work** using pure SPARK ML-KEM
+ **All vault operations work** using pure SPARK ML-KEM
 
 ### 5. What LibOQS Is Used For
 
@@ -122,7 +122,7 @@ end SparkPass.Crypto.LibOQS;
 Line 11: with SparkPass.Crypto.LibOQS;
 ```
 
-✅ **LibOQS is only used for self-test** (not runtime operations)
+ **LibOQS is only used for self-test** (not runtime operations)
 
 ---
 
@@ -141,19 +141,19 @@ The wiring chain is:
 
 ## Complete Validation Status
 
-✅ **COMPLETE** - All validation requirements met:
+ **COMPLETE** - All validation requirements met:
 
-1. ✅ **Test all 1000 NIST KAT vectors** - COMPLETE
+1.  **Test all 1000 NIST KAT vectors** - COMPLETE
    - All 1000 vectors passed (100% success rate)
    - 4000 individual test cases (KeyGen, Encaps CT, Encaps SS, Decaps)
    - Zero failures
 
-2. ✅ **Document comprehensive test results** - COMPLETE
+2.  **Document comprehensive test results** - COMPLETE
    - Full test log: `test/mlkem_kat_full_results.log`
    - Validation report: `docs/ML_KEM_NIST_KAT_FULL_VALIDATION.md`
    - Test harness: `test/test_mlkem_nist_kat_full.adb`
 
-3. ✅ **Prove end-to-end SPARK pipeline** - COMPLETE
+3.  **Prove end-to-end SPARK pipeline** - COMPLETE
    - Pure SPARK ML-KEM wired into production (src/sparkpass/crypto/sparkpass-crypto-mlkem.adb)
    - Vault operations use pure SPARK (src/sparkpass/vault/sparkpass-vault.adb)
    - All 1000 NIST vectors validate end-to-end pipeline

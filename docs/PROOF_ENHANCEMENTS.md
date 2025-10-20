@@ -17,10 +17,10 @@ I've enhanced the pure SPARK mathematical proofs with **detailed ghost assertion
 ### 1. Lemma_Orthogonality_Zero
 
 **Enhanced with:**
-- ✅ Ghost computation of ζ^(256×diff) to verify geometric series behavior
-- ✅ Explicit assertions about diff ≠ 0 precondition
-- ✅ Step-by-step verification of geometric series cancellation
-- ✅ Normalization verification showing (sum × n^(-1)) = 0
+-  Ghost computation of ζ^(256×diff) to verify geometric series behavior
+-  Explicit assertions about diff ≠ 0 precondition
+-  Step-by-step verification of geometric series cancellation
+-  Normalization verification showing (sum × n^(-1)) = 0
 
 **Code Example:**
 ```ada
@@ -50,11 +50,11 @@ end;
 ### 2. Lemma_Single_Coefficient_Roundtrip
 
 **Enhanced with:**
-- ✅ Complete mathematical derivation in comments
-- ✅ Step-by-step algebraic expansion
-- ✅ Explicit verification of orthogonality properties
-- ✅ Ghost computation showing contribution breakdown (i=j vs i≠j)
-- ✅ Fubini's theorem justification for summation exchange
+-  Complete mathematical derivation in comments
+-  Step-by-step algebraic expansion
+-  Explicit verification of orthogonality properties
+-  Ghost computation showing contribution breakdown (i=j vs i≠j)
+-  Fubini's theorem justification for summation exchange
 
 **Code Example:**
 ```ada
@@ -140,7 +140,7 @@ INTT[j](NTT(poly)) = poly[j]
 
 4. **Extract i=j term:**
    ```
-   = poly[j]  ✓
+   = poly[j]  
    ```
 
 **Ghost code explicitly computes each step** so SMT solver can verify.
@@ -191,19 +191,19 @@ pragma Assert (for all K in 0 .. N - 1 =>
 ### Problem: SMT Solver Limits
 
 SMT solvers are powerful but have limitations:
-- ❌ Cannot automatically prove complex algebraic manipulations
-- ❌ Cannot infer summation exchange (Fubini's theorem)
-- ❌ Cannot recognize geometric series cancellation patterns
-- ❌ Cannot apply domain-specific theorems (orthogonality)
+-  Cannot automatically prove complex algebraic manipulations
+-  Cannot infer summation exchange (Fubini's theorem)
+-  Cannot recognize geometric series cancellation patterns
+-  Cannot apply domain-specific theorems (orthogonality)
 
 ### Solution: Ghost Assertions as Proof Steps
 
 By adding explicit intermediate assertions, we:
-- ✅ Break complex proofs into verifiable steps
-- ✅ Make implicit mathematical reasoning explicit
-- ✅ Provide computed values for verification
-- ✅ Guide SMT solver through algebraic derivation
-- ✅ Create checkpoints for partial verification
+-  Break complex proofs into verifiable steps
+-  Make implicit mathematical reasoning explicit
+-  Provide computed values for verification
+-  Guide SMT solver through algebraic derivation
+-  Create checkpoints for partial verification
 
 ### Analogy
 
@@ -212,12 +212,12 @@ By adding explicit intermediate assertions, we:
 *(SMT solver gives up - too complex)*
 
 **With ghost assertions:**
-"Step 1: Verify ζ^256 = -1 ✓"
-"Step 2: Compute Σζ^(k×0) = 256 ✓"
-"Step 3: Verify 256 × 3303 ≡ 1 ✓"
-"Step 4: Apply orthogonality ✓"
-"Step 5: Extract i=j term ✓"
-"Therefore: INTT(NTT(x)) = x ✓"
+"Step 1: Verify ζ^256 = -1 "
+"Step 2: Compute Σζ^(k×0) = 256 "
+"Step 3: Verify 256 × 3303 ≡ 1 "
+"Step 4: Apply orthogonality "
+"Step 5: Extract i=j term "
+"Therefore: INTT(NTT(x)) = x "
 *(SMT solver can verify each step)*
 
 ---
@@ -234,7 +234,7 @@ $ gnatmake -c sparkpass-crypto-mlkem-ntt-proofs.adb
 ```bash
 $ gnatmake -c sparkpass-crypto-mlkem-ntt-proofs.adb
 gcc -c sparkpass-crypto-mlkem-ntt-proofs.adb
-# ✅ Compiled successfully (with detailed ghost assertions)
+#  Compiled successfully (with detailed ghost assertions)
 ```
 
 **No errors** - ghost code is syntactically correct and type-safe.
@@ -251,9 +251,9 @@ alr exec -- gnatprove -P sparkpass.gpr --mode=prove --level=4 \
 ```
 
 **Expected Results:**
-- ✅ Easy lemmas (primitive root, normalization) should prove automatically
+-  Easy lemmas (primitive root, normalization) should prove automatically
 - ⚠️ Medium lemmas (orthogonality) may need a few more assertions
-- ❌ Hard lemmas (FFT implementation) need loop invariants in NTT.adb
+-  Hard lemmas (FFT implementation) need loop invariants in NTT.adb
 
 ### Phase 2: Iterative Refinement (2-3 weeks)
 1. Run GNATprove and review unproven VCs
@@ -324,16 +324,16 @@ pragma Assert (Intermediate_Value = Expected);
 ## Summary
 
 **What We Added:**
-- ✅ Detailed ghost assertions in `Lemma_Orthogonality_Zero`
-- ✅ Complete proof derivation in `Lemma_Single_Coefficient_Roundtrip`
-- ✅ Step-by-step verification of mathematical properties
-- ✅ Explicit computation of intermediate values
+-  Detailed ghost assertions in `Lemma_Orthogonality_Zero`
+-  Complete proof derivation in `Lemma_Single_Coefficient_Roundtrip`
+-  Step-by-step verification of mathematical properties
+-  Explicit computation of intermediate values
 
 **Result:**
-- ✅ Compiles successfully
-- ✅ Ready for GNATprove verification
-- ✅ Increased likelihood of automatic proof
-- ✅ Clear mathematical reasoning documented in code
+-  Compiles successfully
+-  Ready for GNATprove verification
+-  Increased likelihood of automatic proof
+-  Clear mathematical reasoning documented in code
 
 **Current Status:**
 Pure SPARK proof infrastructure with enhanced ghost assertions, ready for SMT solver verification.

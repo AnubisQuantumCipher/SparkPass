@@ -2,7 +2,7 @@
 
 **Date:** 2025-10-20
 **Topic:** Proving Cooley-Tukey FFT ≡ DFT Mathematical Specification
-**Status:** Contracts Implemented ✅ | Automatic Proofs ⚠️ Extremely Challenging
+**Status:** Contracts Implemented  | Automatic Proofs ⚠️ Extremely Challenging
 
 ---
 
@@ -16,7 +16,7 @@ Gold Level functional correctness contracts have been successfully implemented f
 
 ## What We've Achieved
 
-### 1. Gold Level Contracts ✅
+### 1. Gold Level Contracts 
 ```ada
 procedure NTT (Poly : in out Polynomial) with
    Post => (for all I in Polynomial'Range =>
@@ -24,13 +24,13 @@ procedure NTT (Poly : in out Polynomial) with
 -- GOLD LEVEL: Specifies functional correctness
 ```
 
-### 2. Mathematical Specifications ✅
+### 2. Mathematical Specifications 
 ```ada
 function NTT_Definition (Poly : Polynomial; K : Natural) return Coefficient;
 -- Direct DFT computation: NTT(f)[k] = Σᵢ fᵢ × ζ^(BitRev(k) × i) mod q
 ```
 
-### 3. Loop Invariant Improvements ✅
+### 3. Loop Invariant Improvements 
 - Fixed Zeta_Index bounds assertions in NTT
 - Fixed Zeta_Index bounds assertions in INTT
 - Added relationship between Start and Zeta_Index
@@ -147,7 +147,7 @@ pragma Assume (
 
 **Alternative Gold Level Approach:**
 Instead of proving implementation matches DFT, prove:
-1. **Round-trip property**: `INTT(NTT(x)) = x` ✅ (already proven in Proofs package)
+1. **Round-trip property**: `INTT(NTT(x)) = x`  (already proven in Proofs package)
 2. **Multiplication property**: `INTT(NTT(a) * NTT(b)) = a * b mod (x^n + 1)`
 3. **Linearity**: `NTT(a + b) = NTT(a) + NTT(b)`
 
@@ -160,8 +160,8 @@ Instead of proving implementation matches DFT, prove:
 ### Approach 3: Partial Specification (Incremental)
 
 **Prove simpler properties first:**
-1. ✅ Memory safety (already proven)
-2. ✅ Round-trip identity (already proven)
+1.  Memory safety (already proven)
+2.  Round-trip identity (already proven)
 3. ⚠️ Single-layer correctness (prove one FFT layer)
 4. ⚠️ Inductive composition (build up to full NTT)
 
@@ -171,16 +171,16 @@ Instead of proving implementation matches DFT, prove:
 
 ### What We Can Claim Now
 
-✅ "Gold Level functional correctness **contracts** implemented"
-✅ "Mathematical specifications integrated into procedure contracts"
-✅ "NTT/INTT specified to match DFT mathematical definitions"
-✅ "Loop invariants strengthened for Zeta_Index bounds"
+ "Gold Level functional correctness **contracts** implemented"
+ "Mathematical specifications integrated into procedure contracts"
+ "NTT/INTT specified to match DFT mathematical definitions"
+ "Loop invariants strengthened for Zeta_Index bounds"
 
 ### What We CANNOT Claim
 
-❌ "Automatic proof that NTT implementation matches DFT"
-❌ "Gold Level functional correctness **proven**"
-❌ "99%+ proof rate including functional properties"
+ "Automatic proof that NTT implementation matches DFT"
+ "Gold Level functional correctness **proven**"
+ "99%+ proof rate including functional properties"
 
 ### Why This Is Still Significant
 
@@ -245,10 +245,10 @@ procedure NTT (Poly : in out Polynomial) with
 | Project | Algorithm | Specification | Proof Method | Result |
 |---------|-----------|---------------|--------------|--------|
 | **SparkPass NTT** | Cooley-Tukey FFT | Direct DFT | Automatic SMT | Contracts only |
-| **SPARKNaCl** | Crypto ops | Axiomatic | Automatic SMT | Platinum ✓ |
-| **SeL4** | OS kernel | Functional | Manual (Isabelle) | Full proof ✓ |
-| **CompCert** | C compiler | Semantics | Manual (Coq) | Full proof ✓ |
-| **SPARK Sorting** | Merge sort | Permutation | Automatic SMT | Gold ✓ |
+| **SPARKNaCl** | Crypto ops | Axiomatic | Automatic SMT | Platinum  |
+| **SeL4** | OS kernel | Functional | Manual (Isabelle) | Full proof  |
+| **CompCert** | C compiler | Semantics | Manual (Coq) | Full proof  |
+| **SPARK Sorting** | Merge sort | Permutation | Automatic SMT | Gold  |
 
 **Key Difference:** FFT correctness is significantly more complex than typical Gold Level examples.
 
@@ -257,8 +257,8 @@ procedure NTT (Poly : in out Polynomial) with
 ## Conclusion
 
 **Current Status:**
-- ✅ Gold Level functional correctness **specifications**
-- ✅ Silver Level memory safety **proofs**
+-  Gold Level functional correctness **specifications**
+-  Silver Level memory safety **proofs**
 - ⚠️ Gold Level functional correctness **proofs** require manual effort
 
 **Achievement:**

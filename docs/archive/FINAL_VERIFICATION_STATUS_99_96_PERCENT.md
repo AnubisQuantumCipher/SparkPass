@@ -26,13 +26,13 @@ SparkPass has achieved **99.96% automated formal verification** using SPARK Ada/
 
 | Module | Checks | Proven | % | Status |
 |--------|--------|--------|---|--------|
-| NTT | 54 | 54 | 100% | ✅ COMPLETE |
+| NTT | 54 | 54 | 100% |  COMPLETE |
 | **INTT** | **70** | **69** | **99.86%** | ⚠️ 1 unproven |
-| BaseMul | 1 | 1 | 100% | ✅ COMPLETE |
-| BitRev_Permute | 14 | 14 | 100% | ✅ COMPLETE |
-| Multiply_NTT | 35 | 35 | 100% | ✅ COMPLETE |
-| Is_NTT_Form | 0 | 0 | N/A | ✅ COMPLETE |
-| Is_Coefficient_Form | 0 | 0 | N/A | ✅ COMPLETE |
+| BaseMul | 1 | 1 | 100% |  COMPLETE |
+| BitRev_Permute | 14 | 14 | 100% |  COMPLETE |
+| Multiply_NTT | 35 | 35 | 100% |  COMPLETE |
+| Is_NTT_Form | 0 | 0 | N/A |  COMPLETE |
+| Is_Coefficient_Form | 0 | 0 | N/A |  COMPLETE |
 
 ---
 
@@ -96,21 +96,21 @@ This requires the SMT solver to reason about:
 
 ## Attempted Solutions (Exhaustive)
 
-### 1. ✅ Arithmetic Lemmas (Partial Success)
+### 1.  Arithmetic Lemmas (Partial Success)
 **Approach:** Created custom ghost lemmas to guide SMT provers
 **Files:** `sparkpass-crypto-mlkem-ntt-arithmetic_lemmas.ads/adb`
 **Result:** Successfully proved NTT line 160 (array index with division). INTT line 267 remained unprovable.
 
 **Lemmas Created:**
-- `Lemma_Division_Upper_Bound` ✅
-- `Lemma_Division_Quotient_Bound` ✅
-- `Lemma_Multiplication_Invariant_Preservation` ❌ (insufficient)
-- `Lemma_INTT_Loop_Invariant_After_Start_Increment` ❌ (circular dependency)
-- `Lemma_Mult_Minus_One` ✅
-- `Lemma_NTT_Index_Safety` ✅
-- `Lemma_INTT_Index_Safety` ✅
+- `Lemma_Division_Upper_Bound` 
+- `Lemma_Division_Quotient_Bound` 
+- `Lemma_Multiplication_Invariant_Preservation`  (insufficient)
+- `Lemma_INTT_Loop_Invariant_After_Start_Increment`  (circular dependency)
+- `Lemma_Mult_Minus_One` 
+- `Lemma_NTT_Index_Safety` 
+- `Lemma_INTT_Index_Safety` 
 
-### 2. ❌ Ghost Variable with Equality Invariant
+### 2.  Ghost Variable with Equality Invariant
 **Approach:** Replace inequality with exact equality using ghost variable
 **Formula:** `Expected_Zeta := (256 / (2 * Len) - 1) - (Start / (2 * Len))`
 **Result:** Failed - equality doesn't hold across iterations due to decrement happening mid-block
@@ -123,15 +123,15 @@ loop invariant might fail in first iteration
 
 **Issue:** Zeta_Index is modified within the loop body and persists, breaking the equality at next iteration entry.
 
-### 3. ❌ Stronger Preconditions on Lemmas
+### 3.  Stronger Preconditions on Lemmas
 **Approach:** Add more constraints to lemma preconditions
 **Result:** Created circular dependency - lemma precondition requires proving the same invariant
 
-### 4. ❌ Loop Variants and Additional Bounds
+### 4.  Loop Variants and Additional Bounds
 **Approach:** Add termination metrics and tighter bounds
 **Result:** Helps with termination proof but doesn't address the multiplication issue
 
-### 5. ❌ Case Analysis on Len Values
+### 5.  Case Analysis on Len Values
 **Approach:** Explicit case-by-case proof for each Len  ∈ {2,4,8,16,32,64,128}
 **Result:** SMT still cannot handle the variable multiplication within each case
 
@@ -147,7 +147,7 @@ Despite automated proof failure, the invariant is **mathematically correct**. Se
 - `Zeta_Index = 127`
 - `Start = 0`
 - `Len = 2`
-- Invariant holds: `127 * 4 = 508 >= 0` ✓
+- Invariant holds: `127 * 4 = 508 >= 0` 
 
 **Inductive Step:**
 Assume invariant holds at iteration n: `Zeta_Index_n * (2 * Len) >= Start_n`
@@ -187,10 +187,10 @@ pragma Assert (Zeta_Index * (2 * Len) >= Start);  -- Runtime check
 ```
 
 ### Test Coverage
-- ✅ NIST Known Answer Tests (KAT) for ML-KEM-1024
-- ✅ Randomized property testing (10,000+ test cases)
-- ✅ Boundary condition testing
-- ✅ **Zero assertion failures** in production use
+-  NIST Known Answer Tests (KAT) for ML-KEM-1024
+-  Randomized property testing (10,000+ test cases)
+-  Boundary condition testing
+-  **Zero assertion failures** in production use
 
 **Conclusion:** The invariant holds in all runtime execution paths, confirming mathematical correctness.
 
@@ -221,23 +221,23 @@ pragma Assert (Zeta_Index * (2 * Len) >= Start);  -- Runtime check
 
 ## Assurance Level Achieved
 
-### SPARK Gold Level: Functional Correctness ✅
+### SPARK Gold Level: Functional Correctness 
 
 SparkPass meets the **highest SPARK assurance level**:
 
 | Level | Focus | SparkPass Status |
 |-------|-------|------------------|
-| Stone | Correct data flow | ✅ 100% |
-| Bronze | Initialization | ✅ 100% |
-| Silver | Memory safety (AoRTE) | ✅ 100% |
-| **Gold** | **Functional correctness** | **✅ 99.96%** |
+| Stone | Correct data flow |  100% |
+| Bronze | Initialization |  100% |
+| Silver | Memory safety (AoRTE) |  100% |
+| **Gold** | **Functional correctness** | ** 99.96%** |
 
 **Gold Level Requirements (met):**
-- ✅ Functional specifications (Pre/Post contracts)
-- ✅ Loop invariants for all loops
-- ✅ Automated proofs > 99%
-- ✅ Manual proofs documented for exceptions
-- ✅ Runtime checks for unproven properties
+-  Functional specifications (Pre/Post contracts)
+-  Loop invariants for all loops
+-  Automated proofs > 99%
+-  Manual proofs documented for exceptions
+-  Runtime checks for unproven properties
 
 ### Security Impact: ZERO
 
@@ -266,14 +266,14 @@ SparkPass meets the **highest SPARK assurance level**:
 ### DO-178C / ED-12C (Aviation Software)
 
 SparkPass verification would satisfy:
-- **Level A (highest)**: Requires formal methods for critical components ✅
-- **MC/DC Coverage**: Achieved via SPARK proof ✅
-- **Structural Coverage**: 100% statement coverage ✅
+- **Level A (highest)**: Requires formal methods for critical components 
+- **MC/DC Coverage**: Achieved via SPARK proof 
+- **Structural Coverage**: 100% statement coverage 
 
 **Gap:** Unproven invariant would require **manual review** by certification authority, along with:
-- ✅ Mathematical proof (provided)
-- ✅ Runtime verification (active)
-- ✅ Test evidence (extensive)
+-  Mathematical proof (provided)
+-  Runtime verification (active)
+-  Test evidence (extensive)
 
 **Outcome:** Certifiable with **justification** (standard practice for non-linear arithmetic).
 
@@ -282,10 +282,10 @@ SparkPass verification would satisfy:
 **EAL7 (Highest Assurance):** Formally verified design and tested
 
 SparkPass meets EAL7 requirements:
-- ✅ Formal specification (SPARK contracts)
-- ✅ Semi-formal correspondence proof (99.96% automated)
-- ✅ Security target (password manager with PQC)
-- ✅ Vulnerability assessment (no known issues)
+-  Formal specification (SPARK contracts)
+-  Semi-formal correspondence proof (99.96% automated)
+-  Security target (password manager with PQC)
+-  Vulnerability assessment (no known issues)
 
 **Gap:** 0.04% requires **documented mathematical proof** (provided).
 
@@ -293,9 +293,9 @@ SparkPass meets EAL7 requirements:
 
 **Level 4 (Highest):** Formal security policy model
 
-- ✅ Cryptographic Algorithm Validation (ML-KEM, ML-DSA per FIPS 203/204)
-- ✅ Physical security (software-based: N/A)
-- ✅ Formal security policy ✅ (SPARK contracts)
+-  Cryptographic Algorithm Validation (ML-KEM, ML-DSA per FIPS 203/204)
+-  Physical security (software-based: N/A)
+-  Formal security policy  (SPARK contracts)
 - ⚠️ **Full formal proof:** 99.96% (manual justification for 0.04%)
 
 **NIST Guidance:** "For algorithms where full formal verification is intractable (e.g., non-linear FFT), combination of automated proof + manual analysis + testing is acceptable."
@@ -306,7 +306,7 @@ SparkPass meets EAL7 requirements:
 
 ## Recommendations
 
-### For Production Use: APPROVED ✅
+### For Production Use: APPROVED 
 
 SparkPass is **production-ready** with the following justification:
 1. **99.96% automated proof** exceeds industry standards
@@ -318,17 +318,17 @@ SparkPass is **production-ready** with the following justification:
 ### For High-Assurance Environments
 
 SparkPass is **suitable for**:
-- ✅ Military / Defense applications
-- ✅ Critical infrastructure
-- ✅ Healthcare / HIPAA compliance
-- ✅ Financial services
-- ✅ Government (classified systems)
+-  Military / Defense applications
+-  Critical infrastructure
+-  Healthcare / HIPAA compliance
+-  Financial services
+-  Government (classified systems)
 
 **Required Documentation:**
-- This verification status document ✅
-- Manual proof of INTT invariant (in `SMT_LIMITATIONS_FINAL_ANALYSIS.md`) ✅
-- Test reports ✅
-- Threat model ✅
+- This verification status document 
+- Manual proof of INTT invariant (in `SMT_LIMITATIONS_FINAL_ANALYSIS.md`) 
+- Test reports 
+- Threat model 
 
 ### Future Work (Optional)
 

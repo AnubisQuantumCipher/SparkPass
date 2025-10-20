@@ -181,7 +181,7 @@ Machine-readable output for CI/CD:
 ```json
 $ sparkpass self-test --comprehensive --json
 {
-  "sparkpass_version": "1.0.0",
+  "sparkpass_version": "2.0.8",
   "test_mode": "COMPREHENSIVE",
   "timestamp": " 1729123456",
   "system": {
@@ -637,7 +637,7 @@ stages:
   - deploy
 
 variables:
-  SPARKPASS_VERSION: "1.0.0"
+  SPARKPASS_VERSION: "2.0.8"
 
 build:
   stage: build
@@ -696,7 +696,7 @@ pipeline {
     agent any
 
     environment {
-        SPARKPASS_VERSION = '1.0.0'
+        SPARKPASS_VERSION = '2.0.8'
     }
 
     stages {

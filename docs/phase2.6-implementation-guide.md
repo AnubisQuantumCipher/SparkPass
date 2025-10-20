@@ -78,10 +78,10 @@ Output: Ref_Lane, Ref_Index
 **Purpose**: Split 64-bit pseudo-random value into two 32-bit parts.
 
 **VCs**: 2 (both trivial)
-- Range check: J1 fits in U32 ✓
-- Range check: J2 fits in U32 ✓
+- Range check: J1 fits in U32 
+- Range check: J2 fits in U32 
 
-**Verification Status**: ✅ AUTO (SMT proves immediately)
+**Verification Status**:  AUTO (SMT proves immediately)
 
 **Usage**:
 ```ada
@@ -99,11 +99,11 @@ Extract_J1_J2(Pseudo_Rand, J1, J2);
 **Purpose**: Determine which lane to read reference block from.
 
 **VCs**: 3
-- Range check: J2 mod Parallelism fits in Lane_Index ✓
-- Conditional check: First segment restriction ✓
-- Postcondition: Result in Lane_Index ✓
+- Range check: J2 mod Parallelism fits in Lane_Index 
+- Conditional check: First segment restriction 
+- Postcondition: Result in Lane_Index 
 
-**Verification Status**: ✅ AUTO
+**Verification Status**:  AUTO
 
 **Special case**: SparkPass uses Parallelism=1, so ref_lane always = 0.
 However, code is written generically to support p > 1 in future.
@@ -126,7 +126,7 @@ Ref_Lane := Calculate_Ref_Lane(J2, Pos);
 - 4 postcondition checks (Ref_Area > 0, <= Lane_Length)
 - 2 overflow checks (addition/subtraction)
 
-**Verification Status**: ✅ AUTO (with explicit assertions)
+**Verification Status**:  AUTO (with explicit assertions)
 
 **Key insight**: Reference area grows as algorithm progresses:
 - Pass 0, Segment 0, Index 2: Ref_Area = 1 (only block 0)
@@ -162,13 +162,13 @@ pragma Assert (U64_Mod(J1) * U64_Mod(J1) <= U64_Mod'Last);
 pragma Assert (U64_Mod(Reference_Area_Size) * X <= U64_Mod'Last);
 -- Reasoning: Ref_Area <= 131072 = 2¹⁷
 --            X <= 2³²
---            Product <= 2⁴⁹ < 2⁶⁴ ✓
+--            Product <= 2⁴⁹ < 2⁶⁴ 
 
 -- Proof 3: Z < Ref_Area (prevents underflow in subtraction)
 pragma Assert (Z <= U64_Mod(Reference_Area_Size));
 -- Reasoning: Z = (Ref_Area × X) / 2³²
 --            Since X <= 2³², we have X/2³² <= 1
---            Therefore Z <= Ref_Area ✓
+--            Therefore Z <= Ref_Area 
 ```
 
 **Why this matters**: Without these assertions, SMT solver times out trying to prove overflow-freedom.
@@ -184,7 +184,7 @@ pragma Assert (Z <= U64_Mod(Reference_Area_Size));
 - 1 modulo check (wraparound valid)
 - 3 postcondition checks (valid index, no self-ref, first-segment restriction)
 
-**Verification Status**: ✅ AUTO
+**Verification Status**:  AUTO
 
 **Modulo wraparound**:
 ```ada
@@ -192,7 +192,7 @@ Absolute_Position := (Start_Position + Relative_Position) mod Active_Blocks_Per_
 -- SPARK proves: Start_Position < Active_Blocks_Per_Lane
 --               Relative_Position < Active_Blocks_Per_Lane
 --               Therefore sum < 2 × Active_Blocks_Per_Lane
---               Modulo always yields valid Block_Index ✓
+--               Modulo always yields valid Block_Index 
 ```
 
 ---
@@ -206,7 +206,7 @@ Absolute_Position := (Start_Position + Relative_Position) mod Active_Blocks_Per_
 - 6 assignment checks (Input_Block fields)
 - 1 postcondition check (Counter = 0)
 
-**Verification Status**: ✅ AUTO
+**Verification Status**:  AUTO
 
 **Note**: Input_Block(6) initialized to 0, then incremented by Get_Next_Pseudo_Rand.
 
@@ -225,7 +225,7 @@ Absolute_Position := (Start_Position + Relative_Position) mod Active_Blocks_Per_
 **Verification Status**: ⚠️ DEPENDS ON MIX PACKAGE
 
 **Critical dependency**: Requires `SparkPass.Crypto.Argon2id.Mix.Compress_Block` to be verified.
-This was completed in Phase 2.5 (✅ 128/128 VCs).
+This was completed in Phase 2.5 ( 128/128 VCs).
 
 **Stateful behavior**:
 ```ada
@@ -242,7 +242,7 @@ This was completed in Phase 2.5 (✅ 128/128 VCs).
 
 **VCs**: 0 (wrapper function, all VCs in callees)
 
-**Verification Status**: ✅ AUTO (if all callees verify)
+**Verification Status**:  AUTO (if all callees verify)
 
 **Postcondition proof**:
 ```ada
@@ -583,31 +583,31 @@ end Fill_Segment;
 
 ## SUCCESS CRITERIA CHECKLIST
 
-### Functional Correctness ✅
+### Functional Correctness 
 
-- [✅] All 40 VCs proven (100% proof rate)
+- [] All 40 VCs proven (100% proof rate)
 - [⏳] Matches C reference implementation (requires integration testing)
 - [⏳] Passes RFC 9106 test vectors (requires full Fill_Memory implementation)
-- [✅] Properties verified: ref_index always valid, never self-reference
+- [] Properties verified: ref_index always valid, never self-reference
 
-### Code Quality ✅
+### Code Quality 
 
-- [✅] All functions < 50 SLOC
-- [✅] No magic numbers (all constants named: Active_Blocks_Per_Segment, etc.)
-- [✅] Comprehensive comments with RFC citations
-- [✅] Pre/Post contracts on every function
+- [] All functions < 50 SLOC
+- [] No magic numbers (all constants named: Active_Blocks_Per_Segment, etc.)
+- [] Comprehensive comments with RFC citations
+- [] Pre/Post contracts on every function
 
-### Performance ✅
+### Performance 
 
-- [✅] Index calculation < 100 CPU cycles (estimated 54 cycles)
-- [✅] No heap allocation (stack only)
-- [✅] Inlinable helper functions (Global => null)
+- [] Index calculation < 100 CPU cycles (estimated 54 cycles)
+- [] No heap allocation (stack only)
+- [] Inlinable helper functions (Global => null)
 
 ---
 
 ## NEXT STEPS
 
-1. **Verify Phase 2.6** ✅ (current task)
+1. **Verify Phase 2.6**  (current task)
    ```bash
    gnatprove -P sparkpass.gpr --level=2 sparkpass-crypto-argon2id-index.adb
    ```

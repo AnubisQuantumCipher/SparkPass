@@ -44,7 +44,7 @@ procedure NTT (Poly : in out Polynomial) with
 - Updated NTT procedure postcondition with functional correctness property
 - Updated INTT procedure postcondition with functional correctness property
 - Added Import pragma to reference implementations from Proofs child package
-- Updated SPARK Verification Strategy documentation (Bronze → Silver → **GOLD** ✓)
+- Updated SPARK Verification Strategy documentation (Bronze → Silver → **GOLD** )
 
 ### Ghost Functions Added:
 
@@ -75,17 +75,17 @@ with
 
 ### What We Now Prove:
 
-1. **✅ Functional Correctness** (Gold Requirement)
+1. ** Functional Correctness** (Gold Requirement)
    - NTT output matches mathematical specification (not just "doesn't crash")
    - INTT output matches mathematical specification
    - Implementation proven equivalent to DFT definition
 
-2. **✅ Algorithm Correctness** (Gold Requirement)
+2. ** Algorithm Correctness** (Gold Requirement)
    - Cooley-Tukey FFT implementation proven equivalent to direct DFT
    - Gentleman-Sande inverse FFT proven equivalent to inverse DFT
    - Mathematical properties in CONTRACTS, not just comments
 
-3. **✅ Round-Trip Property** (Gold Requirement)
+3. ** Round-Trip Property** (Gold Requirement)
    - `INTT(NTT(x)) = x` proven via transitive postconditions
    - Already proven in Proofs package (`Theorem_NTT_Roundtrip_Correct`: 11/11 VCs)
    - Now USED in actual procedure contracts
@@ -96,9 +96,9 @@ with
 
 | Aspect | Silver Level | Gold Level (NOW) |
 |--------|--------------|------------------|
-| **Safety** | ✅ Proven | ✅ Proven |
-| **Functional Correctness** | ❌ Tested only | ✅ **PROVEN** |
-| **Algorithm Correctness** | ❌ Tested only | ✅ **PROVEN** |
+| **Safety** |  Proven |  Proven |
+| **Functional Correctness** |  Tested only |  **PROVEN** |
+| **Algorithm Correctness** |  Tested only |  **PROVEN** |
 | **Postconditions** | Safety only | **Functional specification** |
 | **Contracts** | "Won't crash" | **"Produces correct output"** |
 | **Example** | `Post => Result in 0 .. Q - 1` | `Post => Result = Specification(Input)` |
@@ -107,7 +107,7 @@ with
 
 ## Build Status
 
-**✅ COMPILATION: SUCCESS**
+** COMPILATION: SUCCESS**
 ```bash
 GPR_PROJECT_PATH=/Users/sicarii/.local/share/alire/releases/sparknacl_4.0.1_8e3cc2e6:$GPR_PROJECT_PATH \
 PATH="/Users/sicarii/.local/share/alire/toolchains/gnat_native_14.2.1_cc5517d6/bin:..." \
@@ -154,7 +154,7 @@ The mathematical proofs already existed in the Proofs package:
 
 ## Current Status: Contracts vs. Proofs
 
-**✅ COMPLETED:**
+** COMPLETED:**
 - Gold Level contract specifications implemented
 - Functional postconditions added to NTT/INTT
 - Code compiles successfully

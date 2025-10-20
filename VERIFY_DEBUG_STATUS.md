@@ -3,9 +3,9 @@
 ## Current State (2025-10-19)
 
 ### Test Results
-- ✅ **KeyGen**: Works correctly
-- ✅ **Sign**: Completes successfully (no rejection sampling hang)
-- ❌ **Verify**: FAILS - c̃ ≠ c̃' (signature validation fails)
+-  **KeyGen**: Works correctly
+-  **Sign**: Completes successfully (no rejection sampling hang)
+-  **Verify**: FAILS - c̃ ≠ c̃' (signature validation fails)
 
 ### Root Cause
 The `c̃` check is failing, which means `w'1` computed in Verify doesn't match `w1` created during Sign.
@@ -32,14 +32,14 @@ end loop;
 2. `A_Mont * NTT(S1_Mont)` → Montgomery domain mat-vec
 3. `INTT` → **Montgomery domain** (scaled by n^{-1})
 4. **Decode_Poly** → Plain domain
-5. `Add(Temp, S2)` → plain + plain = plain ✅
+5. `Add(Temp, S2)` → plain + plain = plain 
 
 ### Domain Flow in Sign (sparkpass-crypto-mldsa87.adb:345-378)
 1. Encode Y to Montgomery → `NTT(Y_Mont)` → stays Montgomery
 2. `A_Mont * NTT(Y_Mont)` → Montgomery domain mat-vec
 3. `INTT(W)` → **Montgomery domain** (scaled by n^{-1})
 4. **Decode_Poly** → Plain domain
-5. `HighBits(W)` → operates on plain ✅
+5. `HighBits(W)` → operates on plain 
 
 ### Domain Flow in Verify (sparkpass-crypto-mldsa87.adb:540-607)
 1. Encode T1 to Montgomery → `NTT(T1_Mont)` → stays Montgomery
@@ -48,14 +48,14 @@ end loop;
 4. `INTT(Temp_Vec_K)` → **Montgomery domain** (scaled by n^{-1})
 5. **Decode_Poly** → Plain domain
 6. `Scale by 2^d` → operates on plain
-7. `UseHint(H, Temp_Vec_K)` → operates on plain ✅
+7. `UseHint(H, Temp_Vec_K)` → operates on plain 
 
 ## Verified Constants
-- ✅ `n = 256`
-- ✅ `q = 8380417`
-- ✅ `n^{-1} = 8347681`
-- ✅ `256 * 8347681 mod 8380417 = 1`
-- ✅ `F = 16382 = (8347681 * 2^32) mod 8380417`
+-  `n = 256`
+-  `q = 8380417`
+-  `n^{-1} = 8347681`
+-  `256 * 8347681 mod 8380417 = 1`
+-  `F = 16382 = (8347681 * 2^32) mod 8380417`
 
 ## Potential Issues to Investigate
 
@@ -97,7 +97,7 @@ end loop;
 4. **Review FIPS 204 Algorithm 3** (Verify) line-by-line against implementation
 
 ## Touch ID Status
-- ✅ Disabled temporarily (hangs in non-interactive mode)
+-  Disabled temporarily (hangs in non-interactive mode)
 - 🔜 Re-enable after ML-DSA Verify is fixed
 
 ## Files Modified
