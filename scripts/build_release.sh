@@ -92,6 +92,12 @@ fi
 
 # Test binary functionality BEFORE packaging
 echo -e "${YELLOW}Testing binary functionality...${NC}"
+
+    # Deduplicate LC_RPATH entries to prevent dyld duplicate warnings
+    if [ -x scripts/rpath-dedupe.sh ]; then
+        echo -e "${YELLOW}Deduplicating LC_RPATH entries...${NC}"
+        scripts/rpath-dedupe.sh bin/sparkpass_main || true
+    fi
 TEST_OUTPUT=$(./bin/sparkpass_main --version 2>&1)
 if [ $? -ne 0 ]; then
     echo -e "${RED}Error: Binary execution failed${NC}"
