@@ -81,6 +81,12 @@ cd obj
     -Wl,-rpath,$LIBOQS_RPATH \
     -Wl,-rpath,$OPENSSL_RPATH \
     -Wl,-rpath,@executable_path/..//obj \
+
+# Deduplicate LC_RPATH entries
+if [ -x scripts/rpath-dedupe.sh ]; then
+  scripts/rpath-dedupe.sh bin/sparkpass_main || true
+fi
+
     -Wl,-rpath,@executable_path/../..//.local/share/alire/toolchains/gnat_native_14.2.1_cc5517d6/lib/gcc/aarch64-apple-darwin23.6.0/14.2.0/adalib \
     -o ../bin/sparkpass_main
 
