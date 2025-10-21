@@ -4,8 +4,6 @@ project SparkPass is
    for Languages use ("Ada", "C");
    for Source_Dirs use (
       "src/cli",
-      "src/crypto",
-      "src/vault",
       "src/bindings",
       "src/sparkpass",
       "src/sparkpass/cli",
@@ -33,7 +31,10 @@ project SparkPass is
          external("OPENSSL_LDFLAGS", "-L/opt/homebrew/opt/openssl@3/lib"),
          "-lssl",
          "-lcrypto",
+         external("LIBSODIUM_LDFLAGS", "-L/opt/homebrew/lib"),
          "-lsodium",
+         external("LIBOQS_LDFLAGS", "-L/opt/homebrew/Cellar/liboqs/0.14.0/lib"),
+         "-loqs",
          "-framework",
          "CoreFoundation",
          "-framework",

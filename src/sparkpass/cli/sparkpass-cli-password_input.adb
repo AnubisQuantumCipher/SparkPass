@@ -213,4 +213,23 @@ package body SparkPass.CLI.Password_Input is
 
    end Read_Password;
 
+   --  Read a secret without env var fallback
+   procedure Read_Secret
+     (Prompt   : in String;
+      Password : out Byte_Array;
+      Length   : out Natural;
+      Success  : out Boolean) is
+   begin
+      Success := False;
+      Length := 0;
+      for I in Password'Range loop
+         Password (I) := 0;
+      end loop;
+      if Is_TTY then
+         Read_From_TTY (Prompt, Password, Length, Success);
+      else
+         Read_From_Stdin (Password, Length, Success);
+      end if;
+   end Read_Secret;
+
 end SparkPass.CLI.Password_Input;
