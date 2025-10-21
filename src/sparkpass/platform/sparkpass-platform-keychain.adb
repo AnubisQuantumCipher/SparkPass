@@ -8,6 +8,8 @@ with System; use type System.Address;
 with Bindings.Keychain_Darwin; use Bindings.Keychain_Darwin;
 with Bindings.LAContext_Darwin; use Bindings.LAContext_Darwin;
 with SparkPass.Types; use SparkPass.Types;
+with SparkPass.Config;
+with SparkPass.Runtime;
 with SparkPass.Crypto.Zeroize;
 
 package body SparkPass.Platform.Keychain is
@@ -406,8 +408,9 @@ package body SparkPass.Platform.Keychain is
          return;
       end if;
 
-      --  Check cache age (7-day expiration)
-      if Current_Time < Stored_Time then
+      --  Check cache age (7-day expiration), unless High Assurance enforces
+      --  presence-only semantics with no TTL
+      if (not SparkPass.Runtime.High_Assurance_Enabled) and then Current_Time < Stored_Time then
          --  Clock skew detected - reject
          SparkPass.Crypto.Zeroize.Wipe (Wrap_Key);
          return;
@@ -416,7 +419,7 @@ package body SparkPass.Platform.Keychain is
       declare
          Age : constant U64 := Current_Time - Stored_Time;
       begin
-         if Age > Cache_Max_Age then
+         if (not SparkPass.Runtime.High_Assurance_Enabled) and then Age > Cache_Max_Age then
             --  Cache expired
             SparkPass.Crypto.Zeroize.Wipe (Wrap_Key);
             return;

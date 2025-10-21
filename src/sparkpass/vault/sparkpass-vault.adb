@@ -11,6 +11,8 @@ with SparkPass.Crypto.MLDSA;
 with SparkPass.Crypto.Random;
 with SparkPass.Crypto.Zeroize;
 with SparkPass.Vault.Header;
+with SparkPass.Platform.Keychain;
+with SparkPass.Runtime;
 with SparkPass.Vault.Storage;
 
 package body SparkPass.Vault is
@@ -145,7 +147,8 @@ package body SparkPass.Vault is
    procedure Create
      (State     : out Vault_State;
       Password  : Byte_Array;
-      Timestamp : U64)
+      Timestamp : U64;
+      Path      : String)
    is
       Signing : SparkPass.Types.MLDsa_Secret_Key_Array := (others => 0);
    begin
@@ -160,7 +163,8 @@ package body SparkPass.Vault is
          Master       => State.Master_Key,
          Chain        => State.Chain_Key,
          Wrap_Key     => State.Wrap_Key,
-         Signing      => Signing);
+         Signing      => Signing,
+         Vault_Path   => Path);
       State.Header.MLDsa_Secret_Key := Signing;
       State.Header.Has_MLDsa_Secret := True;
       --  NOTE: Wrap_Secrets NOT called here because Header.Initialize already wrapped all secrets
@@ -426,6 +430,7 @@ package body SparkPass.Vault is
          Params.Salt (Index) := Header.Argon2_Salt (Index);
       end loop;
 
+      -- Derive wrap key from passphrase
       SparkPass.Crypto.Argon2id.Derive (Password, Params, Wrap_Key, Op_Success);
       if not Op_Success then
          Zero_Header_Data (Header);
@@ -433,6 +438,45 @@ package body SparkPass.Vault is
          Zero_Locals;
          Status := Authentication_Failed;
          return;
+      end if;
+
+      -- High-Assurance: combine Argon2(pass) with device secret from Keychain
+      if SparkPass.Runtime.High_Assurance_Enabled then
+         declare
+            Device_Secret : Key_Array := (others => 0);
+            Retrieved : Boolean := False;
+            Current_Time : constant U64 := 0;  -- timestamp not critical in HA (presence enforced)
+            Combine_Info : constant SparkPass.Types.Byte_Array := (
+              1 => U8(Character'Pos('S')),
+              2 => U8(Character'Pos('p')),
+              3 => U8(Character'Pos('a')),
+              4 => U8(Character'Pos('r')),
+              5 => U8(Character'Pos('k')),
+              6 => U8(Character'Pos('P')),
+              7 => U8(Character'Pos('a')),
+              8 => U8(Character'Pos('s')),
+              9 => U8(Character'Pos('s')),
+              10 => U8(Character'Pos(' ')),
+              11 => U8(Character'Pos('M')),
+              12 => U8(Character'Pos('E')),
+              13 => U8(Character'Pos('K')));
+            Combined : SparkPass.Types.Byte_Array (1 .. Wrap_Key'Length);
+         begin
+            SparkPass.Platform.Keychain.Retrieve_Wrap_Key (Device_Secret, Path, Current_Time, Retrieved);
+            if not Retrieved then
+               Zero_Header_Data (Header);
+               Zero_Entries;
+               Zero_Locals;
+               Status := Authentication_Failed;
+               return;
+            end if;
+            Combined := SparkPass.Crypto.HKDF.Derive (Wrap_View, Device_Secret, Combine_Info, Wrap_Key'Length);
+            for I in Wrap_Key'Range loop
+               Wrap_Key (I) := Combined (Combined'First + (I - Wrap_Key'First));
+            end loop;
+            SparkPass.Crypto.Zeroize.Wipe (Combined);
+            SparkPass.Crypto.Zeroize.Wipe (Device_Secret);
+         end;
       end if;
 
       SparkPass.Crypto.ChaCha20Poly1305.Open

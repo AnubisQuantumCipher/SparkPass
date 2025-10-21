@@ -41,13 +41,15 @@ package SparkPass.Vault is
    procedure Create
      (State     : out Vault_State;
       Password  : Byte_Array;
-      Timestamp : U64)
+      Timestamp : U64;
+      Path      : String)
      with
        Global  => null,
-       Depends => (State => (Password, Timestamp)),
+        Depends => (State => (Password, Timestamp, Path)),
        Pre     => Password'Length >= 12 and then
                   Password'Length <= 128 and then
-                  Password'First >= 1,
+                  Password'First >= 1 and then
+                  Path'Length > 0 and then Path'Length <= 4096,
        Post    => State.Unlocked and then
                   State.Entry_Count = 0 and then
                   State.Header.Created_At = Timestamp and then

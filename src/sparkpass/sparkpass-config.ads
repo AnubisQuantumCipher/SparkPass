@@ -32,6 +32,14 @@ package SparkPass.Config is
    Argon2_Verification_Mode : constant Argon2_Verification_Preset :=
      Test_Medium;
 
+   -- High Assurance Mode
+   -- When True, unlocking requires BOTH factors:
+   --   1) Argon2id(passphrase) at full cost, and
+   --   2) Device secret via Touch ID on every unlock (no fast-bypass)
+   -- The wrap key used to seal the master key is derived by combining
+   -- Argon2(pass) with the device secret via HKDF. No cached KEK is used.
+   High_Assurance_Mode : constant Boolean := True;
+
    Master_Key_Length : constant Positive := 32;
    Nonce_Length      : constant Positive := 12;
    Tag_Length        : constant Positive := 16;

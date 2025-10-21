@@ -10,7 +10,8 @@ project SparkPass is
       "src/sparkpass/crypto",
       "src/sparkpass/vault",
       "src/sparkpass/platform",
-      "src/sparkpass/support");
+      "src/sparkpass/support",
+      "extern/spark_argon2id/src");
    for Object_Dir use "obj";
    for Exec_Dir   use "bin";
    for Main use ("sparkpass_main.adb");
@@ -18,7 +19,7 @@ project SparkPass is
    package Compiler is
       for Driver ("C") use "/usr/bin/clang";
       for Driver ("C++") use "/usr/bin/clang++";
-      for Default_Switches ("Ada") use ("-O2", "-gnatn", "-gnatw.T", "-mmacosx-version-min=26.0");
+      for Default_Switches ("Ada") use ("-O2", "-gnatn", "-gnatw.T", "-gnat2022", "-mmacosx-version-min=26.0");
       for Default_Switches ("C") use ("-O2", "-mmacosx-version-min=26.0", "-Wno-deprecated-declarations", "-Wno-unused-command-line-argument");
       for Default_Switches ("C++") use ("-O2", "-mmacosx-version-min=26.0", "-x", "objective-c");
    end Compiler;

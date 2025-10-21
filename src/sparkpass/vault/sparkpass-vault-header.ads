@@ -10,13 +10,14 @@ package SparkPass.Vault.Header is
       Master    : out Key_Array;
       Chain     : out Chain_Key_Array;
       Wrap_Key  : out Key_Array;
-      Signing   : out SparkPass.Types.MLDsa_Secret_Key_Array)
+      Signing   : out SparkPass.Types.MLDsa_Secret_Key_Array;
+      Vault_Path : String)
      with
        Global  => null,
-       Depends => (State   => (Password, Timestamp),
+       Depends => (State   => (Password, Timestamp, Vault_Path),
                    Master  => null,
                    Chain   => null,
-                   Wrap_Key => Password,
+                   Wrap_Key => (Password, Vault_Path),
                    Signing => null),
        Post    => Has_Signing_Key (State);
 

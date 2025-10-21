@@ -3,6 +3,7 @@ with Ada.Command_Line; use Ada.Command_Line;
 with Ada.Text_IO;      use Ada.Text_IO;
 with Ada.Calendar;     use Ada.Calendar;
 with Ada.Unchecked_Deallocation;
+with Ada.IO_Exceptions;
 with Interfaces;       use type Interfaces.Unsigned_64; use type Interfaces.Unsigned_8;
 with Interfaces.C;
 with Interfaces.C.Strings;
@@ -15,6 +16,7 @@ with SparkPass.Vault.Storage; use SparkPass.Vault.Storage;
 with SparkPass.CLI.Password_Input;
 with SparkPass.CLI.Device;
 with SparkPass.Platform.Keychain;
+with SparkPass.Runtime;
 
 procedure Sparkpass_Main is
 
@@ -80,7 +82,7 @@ procedure Sparkpass_Main is
 
    procedure Usage is
    begin
-      Put_Line ("SparkPass v1.0 - Hybrid Post-Quantum Password Vault");
+      Put_Line ("SparkPass v2.0.8 - Hybrid Post-Quantum Password Vault");
       Put_Line ("");
       Put_Line ("USAGE:");
       Put_Line ("  sparkpass <command> [arguments]");
@@ -169,7 +171,7 @@ begin
          Usage;
          return;
       elsif Cmd = "--version" or else Cmd = "-v" or else Cmd = "version" then
-         Put_Line ("SparkPass version 1.0.0");
+         Put_Line ("SparkPass version 2.0.8");
          Put_Line ("Post-quantum hybrid password vault");
          Put_Line ("Cryptography: ML-KEM-1024, ML-DSA-87, AES-256-GCM-SIV, Argon2id");
          return;
@@ -249,7 +251,7 @@ begin
             end loop;
 
             SparkPass.Vault.Clear (Vault_Buffer.all);
-            SparkPass.Vault.Create (Vault_Buffer.all, Password (1 .. Password_Len), Timestamp);
+            SparkPass.Vault.Create (Vault_Buffer.all, Password (1 .. Password_Len), Timestamp, Path);
             SparkPass.Vault.Save (Vault_Buffer.all, Path, Save_State);
             case Save_State is
                when SparkPass.Vault.Saved =>
@@ -295,6 +297,12 @@ begin
                      Put_Line (Hex);
                   end;
                   Put_Line ("Entries: " & Interfaces.Unsigned_32'Image (Header.Entry_Count));
+                  Put ("High-Assurance Mode: ");
+                  if SparkPass.Runtime.High_Assurance_Enabled then
+                     Put_Line ("Enabled (passphrase + device presence required)");
+                  else
+                     Put_Line ("Disabled (fast unlock/caching permitted)");
+                  end if;
                when SparkPass.Vault.Storage.Io_Error =>
                   Put_Line ("✗ failed to load vault (I/O error)");
                when SparkPass.Vault.Storage.Format_Error =>
@@ -307,6 +315,7 @@ begin
                   Put_Line ("  Fix: chmod 600 " & Path);
             end case;
 
+            --  Zeroize sensitive header fields
             SparkPass.Crypto.Zeroize.Wipe (Header.Wrapped_Master_Key);
             SparkPass.Crypto.Zeroize.Wipe (Header.Wrapped_Master_Nonce);
             SparkPass.Crypto.Zeroize.Wipe (Header.Wrapped_Master_Tag);
@@ -322,17 +331,20 @@ begin
             SparkPass.Crypto.Zeroize.Wipe (Header.Argon2_Salt);
             SparkPass.Crypto.Zeroize.Wipe (Header.Vault_Fingerprint);
 
-            for Index in Entries'Range loop
-               SparkPass.Crypto.Zeroize.Wipe (Entries (Index).Ciphertext);
-               SparkPass.Crypto.Zeroize.Wipe (Entries (Index).Label);
-               SparkPass.Crypto.Zeroize.Wipe (Entries (Index).Signature);
-               SparkPass.Crypto.Zeroize.Wipe (Entries (Index).Nonce);
-               SparkPass.Crypto.Zeroize.Wipe (Entries (Index).Tag);
-               SparkPass.Crypto.Zeroize.Wipe (Entries (Index).Id);
+            --  Zeroize only valid entries (up to Count)
+            for Index in 1 .. Integer (Count) loop
+               if Index in Entries'Range then
+                  SparkPass.Crypto.Zeroize.Wipe (Entries (Index).Ciphertext);
+                  SparkPass.Crypto.Zeroize.Wipe (Entries (Index).Label);
+                  SparkPass.Crypto.Zeroize.Wipe (Entries (Index).Signature);
+                  SparkPass.Crypto.Zeroize.Wipe (Entries (Index).Nonce);
+                  SparkPass.Crypto.Zeroize.Wipe (Entries (Index).Tag);
+                  SparkPass.Crypto.Zeroize.Wipe (Entries (Index).Id);
+               end if;
             end loop;
          end;
 
-      elsif Cmd = "unlock" then
+   elsif Cmd = "unlock" then
          if Argument_Count < 2 then
             Usage;
             return;
@@ -353,24 +365,26 @@ begin
          begin
             SparkPass.Vault.Clear (Vault_Buffer.all);
 
-            --  Try biometric unlock first
-            SparkPass.Platform.Keychain.Retrieve_Wrap_Key
-              (Wrap_Key_Cached, Path, Current_Time, Cache_Success);
+            if not SparkPass.Runtime.High_Assurance_Enabled then
+               --  Try biometric unlock (fast path)
+               SparkPass.Platform.Keychain.Retrieve_Wrap_Key
+                 (Wrap_Key_Cached, Path, Current_Time, Cache_Success);
 
-            if Cache_Success then
-               --  Attempt biometric unlock with cached wrap key
-               SparkPass.Vault.Open_With_Key (Vault_Buffer.all, Path, Wrap_Key_Cached, Open_State);
-               SparkPass.Crypto.Zeroize.Wipe (Wrap_Key_Cached);
+               if Cache_Success then
+                  --  Attempt biometric unlock with cached wrap key
+                  SparkPass.Vault.Open_With_Key (Vault_Buffer.all, Path, Wrap_Key_Cached, Open_State);
+                  SparkPass.Crypto.Zeroize.Wipe (Wrap_Key_Cached);
 
-               case Open_State is
-                  when SparkPass.Vault.Success =>
-                     Put_Line ("✓ unlocked with biometric authentication");
-                     SparkPass.Vault.Clear (Vault_Buffer.all);
-                     return;
-                  when others =>
-                     --  If biometric unlock failed, clear state and fall through to password
-                     SparkPass.Vault.Clear (Vault_Buffer.all);
-               end case;
+                  case Open_State is
+                     when SparkPass.Vault.Success =>
+                        Put_Line ("✓ unlocked with biometric authentication");
+                        SparkPass.Vault.Clear (Vault_Buffer.all);
+                        return;
+                     when others =>
+                        --  If biometric unlock failed, clear state and fall through to password
+                        SparkPass.Vault.Clear (Vault_Buffer.all);
+                  end case;
+               end if;
             end if;
 
             --  Biometric unlock not available or failed - prompt for password
@@ -403,13 +417,13 @@ begin
             case Open_State is
                when SparkPass.Vault.Success =>
                   Put_Line ("✓ password accepted");
-
-                  --  Cache wrap_key for future biometric unlock
-                  SparkPass.Platform.Keychain.Store_Wrap_Key
-                    (Vault_Buffer.all.Wrap_Key, Path, Current_Time, Cache_Success);
-
-                  if Cache_Success then
-                     Put_Line ("  (biometric unlock enabled for 7 days)");
+                  if not SparkPass.Runtime.High_Assurance_Enabled then
+                     --  Cache wrap_key for future biometric unlock
+                     SparkPass.Platform.Keychain.Store_Wrap_Key
+                       (Vault_Buffer.all.Wrap_Key, Path, Current_Time, Cache_Success);
+                     if Cache_Success then
+                        Put_Line ("  (biometric unlock enabled for 7 days)");
+                     end if;
                   end if;
 
                   SparkPass.Vault.Clear (Vault_Buffer.all);
@@ -424,6 +438,37 @@ begin
             end case;
             SparkPass.Crypto.Zeroize.Wipe (Password);
             SparkPass.Crypto.Zeroize.Wipe (Password_Buf);
+         end;
+
+      elsif Cmd = "policy" then
+         if Argument_Count < 3 then
+            Put_Line ("Usage: sparkpass policy ha <on|off|status>");
+            return;
+         end if;
+         declare
+            Sub  : constant String := Argument (2);
+            Arg3 : constant String := Argument (3);
+         begin
+            if Sub = "ha" then
+               if Arg3 = "status" then
+                  Put ("High-Assurance Mode: ");
+                  if SparkPass.Runtime.High_Assurance_Enabled then
+                     Put_Line ("Enabled");
+                  else
+                     Put_Line ("Disabled");
+                  end if;
+               elsif Arg3 = "on" then
+                  SparkPass.Runtime.Set_High_Assurance (True);
+                  Put_Line ("High-Assurance Mode enabled.");
+               elsif Arg3 = "off" then
+                  SparkPass.Runtime.Set_High_Assurance (False);
+                  Put_Line ("High-Assurance Mode disabled.");
+               else
+                  Put_Line ("Usage: sparkpass policy ha <on|off|status>");
+               end if;
+            else
+               Put_Line ("Usage: sparkpass policy ha <on|off|status>");
+            end if;
          end;
 
       elsif Cmd = "add" then
@@ -634,11 +679,19 @@ begin
                      declare
                         Secret : constant String := To_String (Plain, Data_Len);
                         Confirm : String (1 .. 256);
-                        Last : Natural;
+                        Last : Natural := 0;
                      begin
                         Put ("WARNING: Secret will be printed to stdout. Continue? (y/N): ");
                         Flush;
-                        Get_Line (Confirm, Last);
+
+                        --  Try to read confirmation, handle non-interactive case
+                        begin
+                           Get_Line (Confirm, Last);
+                        exception
+                           when Ada.IO_Exceptions.End_Error =>
+                              --  Non-interactive: default to 'no' for security
+                              Last := 0;
+                        end;
 
                         if Last > 0 and then (Confirm (1) = 'y' or else Confirm (1) = 'Y') then
                            Put_Line ("✓ " & Secret);
@@ -1279,7 +1332,7 @@ begin
             if Json_Mode then
                --  JSON output for CI/CD integration
                Put_Line ("{");
-               Put_Line ("  ""sparkpass_version"": ""1.0.0"",");
+               Put_Line ("  ""sparkpass_version"": ""2.0.8"",");
                Put_Line ("  ""test_mode"": """ & SparkPass.Crypto.Self_Test.Test_Mode'Image (Test_Mode) & """,");
                Put_Line ("  ""timestamp"": """ & U64'Image (Timestamp) & """,");
                Put_Line ("  ""system"": {");

@@ -9,6 +9,8 @@ with SparkPass.Crypto.MLDSA;
 with SparkPass.Crypto.MLKEM;
 with SparkPass.Crypto.Random;
 with SparkPass.Crypto.Zeroize;
+with SparkPass.Platform.Keychain;
+with SparkPass.Runtime;
 
 package body SparkPass.Vault.Header is
 
@@ -24,12 +26,27 @@ package body SparkPass.Vault.Header is
       Master    : out Key_Array;
       Chain     : out Chain_Key_Array;
       Wrap_Key  : out Key_Array;
-      Signing   : out SparkPass.Types.MLDsa_Secret_Key_Array)
+      Signing   : out SparkPass.Types.MLDsa_Secret_Key_Array;
+      Vault_Path : String)
    is
       Params : SparkPass.Crypto.Argon2id.Parameters;
       Derived : Key_Array := (others => 0);
       Derive_Success : Boolean := False;
       HKDF_Info    : constant Byte_Array := (1 => 0);
+      Combine_Info : constant Byte_Array := (
+        1 => U8(Character'Pos('S')),
+        2 => U8(Character'Pos('p')),
+        3 => U8(Character'Pos('a')),
+        4 => U8(Character'Pos('r')),
+        5 => U8(Character'Pos('k')),
+        6 => U8(Character'Pos('P')),
+        7 => U8(Character'Pos('a')),
+        8 => U8(Character'Pos('s')),
+        9 => U8(Character'Pos('s')),
+        10 => U8(Character'Pos(' ')),
+        11 => U8(Character'Pos('M')),
+        12 => U8(Character'Pos('E')),
+        13 => U8(Character'Pos('K')));
    begin
       State.Magic   := SparkPass.Config.Magic_Text;
       State.Version := SparkPass.Config.Version;
@@ -76,7 +93,39 @@ package body SparkPass.Vault.Header is
 
       Ada.Text_IO.Put_Line ("[Header.Init] Argon2id completed");
 
-      Wrap_Key := Derived;
+      -- High-Assurance: combine Argon2(pass) with device secret from Keychain
+      if SparkPass.Runtime.High_Assurance_Enabled then
+         declare
+            Device_Secret : Key_Array := (others => 0);
+            Stored : Boolean := False;
+            Current_Time : Interfaces.Unsigned_64 := Interfaces.Unsigned_64 (Timestamp);
+            Combined : Byte_Array (1 .. Wrap_Key'Length);
+         begin
+            -- Try to retrieve existing device secret; if not found, generate and store
+            SparkPass.Platform.Keychain.Retrieve_Wrap_Key (Device_Secret, Vault_Path, Current_Time, Stored);
+            if not Stored then
+               SparkPass.Crypto.Random.Fill (Device_Secret);
+               declare
+                  Stored_OK : Boolean := False;
+               begin
+                  SparkPass.Platform.Keychain.Store_Wrap_Key (Device_Secret, Vault_Path, Current_Time, Stored_OK);
+                  if not Stored_OK then
+                     SparkPass.Crypto.Zeroize.Wipe (Device_Secret);
+                     raise Program_Error with "Touch ID device secret unavailable";
+                  end if;
+               end;
+            end if;
+            -- Combine via HKDF: MEK = HKDF(Derived, salt=Device_Secret, info="SparkPass MEK")
+            Combined := SparkPass.Crypto.HKDF.Derive (Derived, Device_Secret, Combine_Info, Wrap_Key'Length);
+            for I in Wrap_Key'Range loop
+               Wrap_Key (I) := Combined (Combined'First + (I - Wrap_Key'First));
+            end loop;
+            SparkPass.Crypto.Zeroize.Wipe (Combined);
+            SparkPass.Crypto.Zeroize.Wipe (Device_Secret);
+         end;
+      else
+         Wrap_Key := Derived;
+      end if;
 
       SparkPass.Crypto.Random.Fill (Master);
       SparkPass.Crypto.Random.Fill (Chain);

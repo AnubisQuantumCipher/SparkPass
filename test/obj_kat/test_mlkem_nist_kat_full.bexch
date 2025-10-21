@@ -1,0 +1,45 @@
+[GENERATED OBJECT FILE]
+b__test_mlkem_nist_kat_full.o
+[PROJECT FILES]
+/Users/sicarii/SparkPass/test/test_mlkem_kat_full.gpr
+20251021071350 b4742232a36f328733530db82aac34ca
+/Users/sicarii/.local/share/alire/builds/sparknacl_4.0.1_8e3cc2e6/1e0cf10de6b2ce42863dc796f6c3636affe5b1b533eaf9aeb37b90928b69ee3b/sparknacl.gpr
+20251017175532 6da8b38774976a6dbf2fa614e5d4889b
+/Users/sicarii/SparkPass/sparkpass.gpr
+20251019232423 e0583435b2878133dbcba54a5efc2206
+[BOUND OBJECT FILES]
+/Users/sicarii/SparkPass/obj/sparkpass.o
+/Users/sicarii/SparkPass/obj/sparkpass-config.o
+/Users/sicarii/SparkPass/obj/sparkpass-crypto.o
+/Users/sicarii/SparkPass/obj/sparkpass-types.o
+/Users/sicarii/SparkPass/obj/sparkpass-crypto-zeroize.o
+/Users/sicarii/SparkPass/obj/sparkpass-crypto-keccak.o
+/Users/sicarii/SparkPass/obj/sparkpass-crypto-random.o
+/Users/sicarii/SparkPass/obj/sparkpass-crypto-mlkem-hash.o
+/Users/sicarii/SparkPass/obj/sparkpass-crypto-mlkem-prf.o
+/Users/sicarii/SparkPass/obj/sparkpass-crypto-mlkem-types.o
+/Users/sicarii/SparkPass/obj/sparkpass-crypto-mlkem-arithmetic.o
+/Users/sicarii/SparkPass/obj/sparkpass-crypto-mlkem-encoding.o
+/Users/sicarii/SparkPass/obj/sparkpass-crypto-mlkem-ntt-constants.o
+/Users/sicarii/SparkPass/obj/sparkpass-crypto-mlkem-ntt.o
+/Users/sicarii/SparkPass/obj/sparkpass-crypto-mlkem-poly.o
+/Users/sicarii/SparkPass/obj/sparkpass-crypto-mlkem-matrix.o
+/Users/sicarii/SparkPass/obj/sparkpass-crypto-mlkem-sampling.o
+/Users/sicarii/SparkPass/obj/sparkpass-crypto-mlkem-xof.o
+/Users/sicarii/SparkPass/obj/sparkpass-crypto-mlkem-encaps.o
+/Users/sicarii/SparkPass/obj/sparkpass-crypto-mlkem-decaps.o
+/Users/sicarii/SparkPass/obj/sparkpass-crypto-mlkem-keygen.o
+/Users/sicarii/SparkPass/obj/sparkpass-crypto-mlkem.o
+/Users/sicarii/SparkPass/test/obj_kat/test_mlkem_nist_kat_full.o
+[GENERATED SOURCE FILES]
+b__test_mlkem_nist_kat_full.ads
+b__test_mlkem_nist_kat_full.adb
+b__test_mlkem_nist_kat_full.ali
+[RESULTING OPTIONS]
+-L/Users/sicarii/SparkPass/test/obj_kat/
+-L/Users/sicarii/SparkPass/test/obj_kat/
+-L/Users/sicarii/SparkPass/obj/
+-L/Users/sicarii/.local/share/alire/builds/sparknacl_4.0.1_8e3cc2e6/1e0cf10de6b2ce42863dc796f6c3636affe5b1b533eaf9aeb37b90928b69ee3b/lib/
+-L/Users/sicarii/.local/share/alire/toolchains/gnat_native_14.2.1_cc5517d6/lib/gcc/aarch64-apple-darwin23.6.0/14.2.0/adalib/
+-static
+/Users/sicarii/.local/share/alire/toolchains/gnat_native_14.2.1_cc5517d6/lib/gcc/aarch64-apple-darwin23.6.0/14.2.0/adalib/libgnat.a
