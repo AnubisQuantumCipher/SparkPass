@@ -82,7 +82,7 @@ procedure Sparkpass_Main is
 
    procedure Usage is
    begin
-      Put_Line ("SparkPass v2.0.8 - Hybrid Post-Quantum Password Vault");
+      Put_Line ("SparkPass v2.0.9 - Hybrid Post-Quantum Password Vault");
       Put_Line ("");
       Put_Line ("USAGE:");
       Put_Line ("  sparkpass <command> [arguments]");
@@ -171,7 +171,7 @@ begin
          Usage;
          return;
       elsif Cmd = "--version" or else Cmd = "-v" or else Cmd = "version" then
-         Put_Line ("SparkPass version 2.0.8");
+         Put_Line ("SparkPass version 2.0.9");
          Put_Line ("Post-quantum hybrid password vault");
          Put_Line ("Cryptography: ML-KEM-1024, ML-DSA-87, AES-256-GCM-SIV, Argon2id");
          return;
@@ -1332,7 +1332,7 @@ begin
             if Json_Mode then
                --  JSON output for CI/CD integration
                Put_Line ("{");
-               Put_Line ("  ""sparkpass_version"": ""2.0.8"",");
+               Put_Line ("  ""sparkpass_version"": ""2.0.9"",");
                Put_Line ("  ""test_mode"": """ & SparkPass.Crypto.Self_Test.Test_Mode'Image (Test_Mode) & """,");
                Put_Line ("  ""timestamp"": """ & U64'Image (Timestamp) & """,");
                Put_Line ("  ""system"": {");
